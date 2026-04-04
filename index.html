@@ -1,13 +1,92 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <title>Music Player</title>
-        <link rel="stylesheet" href="style.css">
-    </head>
-    <body>
-        <script src="script.js"></script>
-    </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Player Layout</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-wrapper">
+        
+        <!-- TOP SECTION: Sidebar + Main + Lyrics -->
+        <div class="top-section">
+            
+            <!-- LEFT: Navigation Sidebar -->
+            <nav class="sidebar">
+                <div class="nav-item"></div>
+                <div class="nav-item"></div>
+                <div class="nav-item"></div>
+            </nav>
+
+            <!-- CENTER: Main Content Area (Songs, Artists pages go here) -->
+            <main class="main-content">
+                <!-- Content injected here via JS -->
+            </main>
+
+            <!-- RIGHT: Dedicated Lyrics Section -->
+            <aside class="lyrics-section">
+                <!-- Real-time synced lyrics go here -->
+            </aside>
+            
+        </div>
+
+        <!-- BOTTOM: Control Bar -->
+        <footer class="control-bar">
+            
+            <!-- 1. Now Playing Info -->
+            <div class="now-playing">
+                <div class="artwork"></div>
+                <div class="track-info">
+                    <div class="track-title-link"></div>
+                    <div class="track-artists-link"></div>
+                </div>
+                <button class="btn btn-favorite"></button>
+            </div>
+
+            <!-- 2. Playback Controls -->
+            <div class="playback-container">
+                <div class="playback-buttons">
+                    <button class="btn btn-shuffle"></button>
+                    <button class="btn btn-prev"></button>
+                    <button class="btn btn-play-pause"></button>
+                    <button class="btn btn-next"></button>
+                    <button class="btn btn-repeat"></button>
+                </div>
+                
+                <div class="playback-scrollbar-wrapper">
+                    <span class="time-label elapsed-time"></span>
+                    <div class="scrollbar-container" id="playback-scrollbar">
+                        <div class="scrollbar-track">
+                            <div class="scrollbar-fill"></div>
+                        </div>
+                        <!-- Custom Hover Tooltip -->
+                        <div class="hover-tooltip" id="playback-tooltip"></div>
+                    </div>
+                    <span class="time-label total-time"></span>
+                </div>
+            </div>
+
+            <!-- 3. Extra Controls & Volume -->
+            <div class="extra-controls">
+                <button class="btn btn-lyrics-toggle"></button>
+                <button class="btn btn-queue"></button>
+                
+                <div class="volume-scrollbar-wrapper">
+                    <button class="btn btn-volume-icon"></button>
+                    <div class="scrollbar-container" id="volume-scrollbar">
+                        <div class="scrollbar-track">
+                            <div class="scrollbar-fill"></div>
+                        </div>
+                        <!-- Custom Hover Tooltip -->
+                        <div class="hover-tooltip" id="volume-tooltip"></div>
+                    </div>
+                </div>
+                
+                <button class="btn btn-fullscreen"></button>
+            </div>
+
+        </footer>
+    </div>
+</body>
 </html>

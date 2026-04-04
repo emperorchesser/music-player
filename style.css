@@ -1,5 +1,225 @@
+/* --- VARIABLES --- */
+:root {
+    --bg-main: #121212;
+    --bg-sidebar: #000000;
+    --bg-control: #181818;
+    --bg-lyrics: #1f1f1f;
+    --primary-color: #535353; /* Will be updated via JS algorithm */
+    
+    --wireframe-color: #333;
+    --wireframe-highlight: #666;
+    
+    --control-bar-height: 90px;
+}
+
+/* --- RESET & BASE --- */
 * {
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
-    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-main);
+    color: white;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* --- APP WRAPPER --- */
+.app-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* --- TOP SECTION (Sidebar, Main, Lyrics) --- */
+.top-section {
+    display: flex;
+    flex: 1; /* Takes up remaining height above control bar */
+    height: calc(100vh - var(--control-bar-height));
+}
+
+/* Sidebar */
+.sidebar {
+    width: 240px;
+    background-color: var(--bg-sidebar);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Main Content */
+.main-content {
+    flex: 1;
+    background: linear-gradient(to bottom, var(--primary-color), var(--bg-main));
+    padding: 20px;
+    overflow-y: auto;
+}
+
+/* Dedicated Lyrics Section */
+.lyrics-section {
+    width: 300px;
+    background-color: var(--bg-lyrics);
+    padding: 20px;
+    border-left: 1px solid var(--wireframe-color);
+    overflow-y: auto;
+}
+
+/* --- BOTTOM CONTROL BAR --- */
+.control-bar {
+    height: var(--control-bar-height);
+    background-color: var(--bg-control);
+    border-top: 1px solid var(--wireframe-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+}
+
+/* 1. Now Playing Section */
+.now-playing {
+    width: 30%;
+    min-width: 180px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.artwork {
+    width: 56px;
+    height: 56px;
+    background-color: var(--wireframe-color);
+    border-radius: 4px;
+}
+
+.track-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.track-title-link {
+    width: 80px;
+    height: 14px;
+    background-color: var(--wireframe-highlight);
+}
+
+.track-artists-link {
+    width: 120px;
+    height: 10px;
+    background-color: var(--wireframe-color);
+}
+
+/* 2. Playback Controls */
+.playback-container {
+    width: 40%;
+    max-width: 722px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.playback-buttons {
+    display: flex;
+    gap: 16px;
+}
+
+.playback-scrollbar-wrapper {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.time-label {
+    width: 35px;
+    height: 10px;
+    background-color: var(--wireframe-color);
+}
+
+/* 3. Extra Controls */
+.extra-controls {
+    width: 30%;
+    min-width: 180px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+}
+
+.volume-scrollbar-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100px;
+}
+
+/* --- SHARED UI ELEMENTS (Wireframe Blocks) --- */
+.btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: var(--wireframe-color);
+    border: none;
+    cursor: pointer;
+}
+
+.btn-play-pause {
+    width: 40px;
+    height: 40px;
+    background-color: white;
+}
+
+/* Custom Scrollbars (Playback & Volume) */
+.scrollbar-container {
+    position: relative;
+    flex: 1;
+    height: 12px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.scrollbar-track {
+    width: 100%;
+    height: 4px;
+    background-color: var(--wireframe-color);
+    border-radius: 2px;
+}
+
+.scrollbar-fill {
+    width: 30%; /* Mock progress */
+    height: 100%;
+    background-color: var(--wireframe-highlight);
+    border-radius: 2px;
+}
+
+/* Tooltips (Hidden by default, positioned absolute to the scrollbar container) */
+.hover-tooltip {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    transform: translateX(-50%);
+    background-color: var(--bg-control);
+    border: 1px solid var(--wireframe-highlight);
+    border-radius: 4px;
+    width: 40px;
+    height: 24px;
+    display: none; /* Will be toggled to 'block' via JS on hover */
+    pointer-events: none;
+}
+
+/* Example to show tooltip structure (Remove in production) */
+.scrollbar-container:hover .hover-tooltip {
+    display: block; 
+}
+
+/* Sidebar Nav placeholders */
+.nav-item {
+    height: 24px;
+    background-color: var(--wireframe-color);
+    border-radius: 4px;
 }
