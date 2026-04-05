@@ -9,9 +9,15 @@
     --text-secondary: #b3b3b3;
 
     --primary-color: #1e2a4a;
-    /* Slight adjustment to blend with your purple/blue accent */
-    --accent-color: #3f0bff;
-    /* YOUR NEW ACCENT COLOR */
+
+    /* NEW TWO-TIER ACCENT SYSTEM FOR ACCESSIBILITY */
+    --accent-bg: #3f0bff;
+    /* Deep violet for buttons/backgrounds */
+    --accent-hover: #5a2bff;
+    /* Slightly brighter for background hovers */
+    --accent-text: #9d80ff;
+    /* Neon pastel violet for text/icon hovers on dark backgrounds */
+
     --control-bar-height: 90px;
 }
 
@@ -25,6 +31,9 @@ body.light-mode {
     --text-primary: #121212;
     --text-secondary: #555555;
     --primary-color: #b0c4de;
+
+    /* In Light Mode, the dark deep violet is highly readable! */
+    --accent-text: #3f0bff;
 }
 
 /* --- RESET & BASE --- */
@@ -49,8 +58,9 @@ body {
     align-items: center;
     justify-content: center;
 }
-.icon-sm { 
-    font-size: 16px; 
+
+.icon-sm {
+    font-size: 16px;
 }
 
 /* --- APP WRAPPER & TOP SECTION --- */
@@ -106,7 +116,7 @@ body {
     overflow-y: auto;
 }
 
-/* --- RECENTLY PLAYED GRIDS --- */
+/* --- GRIDS --- */
 .home-section {
     margin-top: 20px;
 }
@@ -260,11 +270,13 @@ body.light-mode .lyrics-section {
     font-size: 14px;
     font-weight: bold;
     cursor: pointer;
+    transition: 0.2s;
 }
 
+/* Hovering over text uses the lighter neon text color */
 .track-title-link:hover {
     text-decoration: underline;
-    color: var(--accent-color);
+    color: var(--accent-text);
 }
 
 .track-artists-link {
@@ -322,25 +334,40 @@ body.light-mode .lyrics-section {
 }
 
 /* Buttons & Scrollbars */
-.btn { border: none; background: none; cursor: pointer; color: var(--text-secondary); transition: 0.2s; display: flex; align-items: center; justify-content: center; }
-.btn:hover { color: var(--text-primary); transform: scale(1.05); }
+.btn {
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
-.btn-play-pause { 
-    width: 32px; height: 32px; 
-    border-radius: 50%; 
-    background-color: var(--text-primary); 
+.btn:hover {
+    color: var(--text-primary);
+    transform: scale(1.05);
+}
+
+/* Play button uses the deep violet as a solid background */
+.btn-play-pause {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: var(--text-primary);
     color: var(--bg-main) !important;
 }
 
-/* Centers the FA play triangle nicely inside the circle */
 .btn-play-pause i {
     font-size: 14px;
-    margin-left: 2px; /* Offsets the triangle so it looks mathematically centered */
+    margin-left: 2px;
 }
 
-.btn-play-pause:hover { 
-    transform: scale(1.1); 
-    background-color: var(--accent-color); 
+.btn-play-pause:hover {
+    transform: scale(1.1);
+    background-color: var(--accent-hover);
+    color: white !important;
 }
 
 .scrollbar-container {
@@ -367,8 +394,9 @@ body.light-mode .lyrics-section {
     transition: background-color 0.2s;
 }
 
+/* Scrollbar hovers use the background accent color */
 .scrollbar-container:hover .scrollbar-fill {
-    background-color: var(--accent-color);
+    background-color: var(--accent-hover);
 }
 
 /* --- TOP BAR & SETTINGS --- */
@@ -491,8 +519,9 @@ body.light-mode .btn-settings {
     border-radius: 50%;
 }
 
+/* Toggle switch active state uses the solid background accent */
 input:checked+.slider {
-    background-color: var(--accent-color);
+    background-color: var(--accent-bg);
 }
 
 input:checked+.slider:before {
