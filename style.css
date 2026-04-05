@@ -8,10 +8,10 @@
     --text-primary: #ffffff;
     --text-secondary: #b3b3b3;
 
-    --primary-color: #1e3264;
-    /* A rich dark blue for the gradient! */
-    --accent-color: #1db954;
-    /* Spotify Green */
+    --primary-color: #1e2a4a;
+    /* Slight adjustment to blend with your purple/blue accent */
+    --accent-color: #3f0bff;
+    /* YOUR NEW ACCENT COLOR */
     --control-bar-height: 90px;
 }
 
@@ -24,7 +24,7 @@ body.light-mode {
     --bg-panel: #ffffff;
     --text-primary: #121212;
     --text-secondary: #555555;
-    --primary-color: #7492e8;
+    --primary-color: #b0c4de;
 }
 
 /* --- RESET & BASE --- */
@@ -40,6 +40,17 @@ body {
     color: var(--text-primary);
     transition: background-color 0.3s, color 0.3s;
     overflow: hidden;
+}
+
+/* --- ICONS (Font Awesome Overrides) --- */
+.icon {
+    font-size: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.icon-sm { 
+    font-size: 16px; 
 }
 
 /* --- APP WRAPPER & TOP SECTION --- */
@@ -78,6 +89,9 @@ body {
 .nav-item {
     cursor: pointer;
     transition: color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 16px;
 }
 
 .nav-item:hover {
@@ -87,9 +101,111 @@ body {
 /* Main Content */
 .main-content {
     flex: 1;
-    background: linear-gradient(to bottom, var(--primary-color) 0%, var(--bg-main) 100%);
+    background: linear-gradient(to bottom, var(--primary-color) 0%, var(--bg-main) 300px);
     padding: 24px;
     overflow-y: auto;
+}
+
+/* --- RECENTLY PLAYED GRIDS --- */
+.home-section {
+    margin-top: 20px;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    margin-bottom: 16px;
+    font-weight: 700;
+}
+
+/* Grid 1: Wide Cards */
+.recent-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.recent-card {
+    display: flex;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.recent-card:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+body.light-mode .recent-card {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+body.light-mode .recent-card:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.recent-art {
+    width: 64px;
+    height: 64px;
+    background: #444;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+}
+
+.recent-info {
+    padding: 0 16px;
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+/* Grid 2: Square Cards */
+.album-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 24px;
+}
+
+.album-card {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.album-card:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+body.light-mode .album-card {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+body.light-mode .album-card:hover {
+    background-color: rgba(0, 0, 0, 0.06);
+}
+
+.album-art {
+    width: 100%;
+    aspect-ratio: 1;
+    background: #444;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.album-card h4 {
+    font-size: 1rem;
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.album-card p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
 }
 
 /* Lyrics Section */
@@ -100,6 +216,10 @@ body {
     border-left: 1px solid rgba(255, 255, 255, 0.05);
     overflow-y: auto;
     transition: 0.3s;
+}
+
+body.light-mode .lyrics-section {
+    border-left: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 /* --- BOTTOM CONTROL BAR --- */
@@ -144,6 +264,7 @@ body {
 
 .track-title-link:hover {
     text-decoration: underline;
+    color: var(--accent-color);
 }
 
 .track-artists-link {
@@ -189,7 +310,7 @@ body {
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
     color: var(--text-secondary);
 }
 
@@ -201,34 +322,25 @@ body {
 }
 
 /* Buttons & Scrollbars */
-.btn {
-    border: none;
-    background: none;
-    cursor: pointer;
-    color: var(--text-secondary);
-    transition: 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-}
+.btn { border: none; background: none; cursor: pointer; color: var(--text-secondary); transition: 0.2s; display: flex; align-items: center; justify-content: center; }
+.btn:hover { color: var(--text-primary); transform: scale(1.05); }
 
-.btn:hover {
-    color: var(--text-primary);
-    transform: scale(1.05);
-}
-
-.btn-play-pause {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background-color: var(--text-primary);
+.btn-play-pause { 
+    width: 32px; height: 32px; 
+    border-radius: 50%; 
+    background-color: var(--text-primary); 
     color: var(--bg-main) !important;
-    padding-left: 3px;
 }
 
-.btn-play-pause:hover {
-    transform: scale(1.1);
+/* Centers the FA play triangle nicely inside the circle */
+.btn-play-pause i {
+    font-size: 14px;
+    margin-left: 2px; /* Offsets the triangle so it looks mathematically centered */
+}
+
+.btn-play-pause:hover { 
+    transform: scale(1.1); 
+    background-color: var(--accent-color); 
 }
 
 .scrollbar-container {
@@ -252,6 +364,7 @@ body {
     height: 100%;
     background-color: var(--text-primary);
     border-radius: 2px;
+    transition: background-color 0.2s;
 }
 
 .scrollbar-container:hover .scrollbar-fill {
@@ -262,7 +375,7 @@ body {
 .top-bar {
     display: flex;
     justify-content: flex-end;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 }
 
 .btn-settings {
@@ -282,6 +395,10 @@ body {
 .btn-settings:hover {
     background-color: rgba(0, 0, 0, 0.6);
     transform: rotate(45deg);
+}
+
+body.light-mode .btn-settings {
+    background-color: rgba(255, 255, 255, 0.5);
 }
 
 /* --- SETTINGS MODAL --- */
