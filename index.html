@@ -93,7 +93,6 @@
                         Search
                     </div>
                     <div class="nav-item">
-                        <!-- fa-books is a great FA Pro icon for libraries -->
                         <i class="fa-light fa-books icon"></i> Your Library
                     </div>
                 </nav>
@@ -108,10 +107,17 @@
                         </button>
                     </header>
 
-                    <!-- Section 1: Recently Played -->
+                    <!-- Section 1: Realistic Library View (No Algorithms) -->
                     <section class="home-section">
-                        <h2 class="section-title">Good Evening</h2>
+                        <h2 class="section-title">Recently Played</h2>
                         <div class="recent-grid">
+                            <div class="recent-card">
+                                <div class="recent-art"
+                                    style="background: linear-gradient(135deg, #450af5, #c4a1ff); display:flex; align-items:center; justify-content:center; color:white;">
+                                    <i class="fa-solid fa-heart"></i>
+                                </div>
+                                <div class="recent-info">Liked Songs</div>
+                            </div>
                             <div class="recent-card">
                                 <div class="recent-art"></div>
                                 <div class="recent-info">Midnight Vibes
@@ -119,31 +125,29 @@
                             </div>
                             <div class="recent-card">
                                 <div class="recent-art"></div>
-                                <div class="recent-info">Chillhop
-                                    Essentials</div>
-                            </div>
-                            <div class="recent-card">
-                                <div class="recent-art"></div>
-                                <div class="recent-info">Daily Mix 1</div>
+                                <div class="recent-info">My Playlist #1</div>
                             </div>
                             <div class="recent-card">
                                 <div class="recent-art"></div>
                                 <div class="recent-info">The Synthtones</div>
                             </div>
                             <div class="recent-card">
-                                <div class="recent-art"></div>
-                                <div class="recent-info">Electronic 2026</div>
+                                <div class="recent-art"
+                                    style="background: #2a2a2a; display:flex; align-items:center; justify-content:center; color:#888;">
+                                    <i class="fa-solid fa-folder-music"></i>
+                                </div>
+                                <div class="recent-info">Local Files</div>
                             </div>
                             <div class="recent-card">
                                 <div class="recent-art"></div>
-                                <div class="recent-info">Discover Weekly</div>
+                                <div class="recent-info">Summer Roadtrip</div>
                             </div>
                         </div>
                     </section>
 
-                    <!-- Section 2: Jump Back In -->
+                    <!-- Section 2: Recently Added (Directly from JSON Database) -->
                     <section class="home-section" style="margin-top: 40px;">
-                        <h2 class="section-title">Jump Back In</h2>
+                        <h2 class="section-title">Recently Added</h2>
                         <div class="album-grid">
                             <div class="album-card">
                                 <div class="album-art"></div>
@@ -157,18 +161,18 @@
                             </div>
                             <div class="album-card">
                                 <div class="album-art"></div>
-                                <h4>Deep Focus</h4>
-                                <p>Ambient sounds</p>
+                                <h4>Deep Space</h4>
+                                <p>Album • The Synthtones</p>
                             </div>
                             <div class="album-card">
                                 <div class="album-art"></div>
                                 <h4>Retro Wave</h4>
-                                <p>Various Artists</p>
+                                <p>Compilation</p>
                             </div>
                             <div class="album-card">
                                 <div class="album-art"></div>
-                                <h4>Release Radar</h4>
-                                <p>Catch up on new drops</p>
+                                <h4>Midnight City</h4>
+                                <p>EP • Various Artists</p>
                             </div>
                         </div>
                     </section>
@@ -211,12 +215,10 @@
                     <div class="playback-buttons">
                         <button class="btn"><i
                                 class="fa-light fa-shuffle icon-sm"></i></button>
-                        <!-- Skip buttons are traditionally solid, even in outline sets -->
                         <button class="btn"><i
                                 class="fa-solid fa-backward-step icon-sm"></i></button>
 
                         <button class="btn btn-play-pause">
-                            <!-- Play button is solid -->
                             <i class="fa-solid fa-play"></i>
                         </button>
 
@@ -243,7 +245,6 @@
                 <div class="extra-controls">
                     <button class="btn"><i
                             class="fa-light fa-microphone-lines icon-sm"></i></button>
-                    <!-- fa-list-music is an excellent FA Pro exclusive -->
                     <button class="btn"><i
                             class="fa-light fa-list-music icon-sm"></i></button>
 

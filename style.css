@@ -527,3 +527,29 @@ input:checked+.slider {
 input:checked+.slider:before {
     transform: translateX(24px);
 }
+
+/* --- LYRICS TOGGLE ANIMATIONS --- */
+.lyrics-section {
+    transition: width 0.3s ease, padding 0.3s ease, opacity 0.2s ease;
+}
+
+/* When the panel is hidden via JS */
+.lyrics-section.hidden {
+    width: 0;
+    padding-left: 0;
+    padding-right: 0;
+    border-left: none;
+    opacity: 0;
+}
+
+/* Active Button State (For the Microphone icon) */
+.btn.active {
+    color: var(--accent-text);
+}
+
+/* --- VOLUME SLIDER DRAGGING --- */
+/* Disables highlighting text by accident when dragging the slider */
+body.dragging {
+    -webkit-user-select: none;
+    user-select: none;
+}
