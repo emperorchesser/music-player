@@ -178,8 +178,8 @@
                     </section>
                 </main>
 
-                <!-- LYRICS SECTION -->
-                <aside class="lyrics-section">
+                <!-- LYRICS SECTION (Added ID) -->
+                <aside class="lyrics-section" id="lyrics-panel">
                     <h3 style="margin-bottom: 20px;">Lyrics</h3>
                     <p
                         style="color: var(--text-secondary); margin-bottom: 10px;">Walking
@@ -241,19 +241,24 @@
                     </div>
                 </div>
 
-                <!-- 3. Volume & Extras -->
+                <!-- 3. Volume & Extras (Added IDs and 'active' class to mic) -->
                 <div class="extra-controls">
-                    <button class="btn"><i
-                            class="fa-light fa-microphone-lines icon-sm"></i></button>
-                    <button class="btn"><i
-                            class="fa-light fa-list-music icon-sm"></i></button>
+                    <button class="btn active" id="btn-lyrics-toggle"
+                        title="Toggle Lyrics">
+                        <i class="fa-light fa-microphone-lines icon-sm"></i>
+                    </button>
+                    <button class="btn" title="Queue">
+                        <i class="fa-light fa-list-music icon-sm"></i>
+                    </button>
 
                     <div class="volume-scrollbar-wrapper">
-                        <button class="btn"><i
-                                class="fa-light fa-volume-high icon-sm"></i></button>
-                        <div class="scrollbar-container" id="volume-scrollbar">
+                        <button class="btn" id="btn-mute" title="Mute">
+                            <i class="fa-light fa-volume-high icon-sm"
+                                id="mute-icon"></i>
+                        </button>
+                        <div class="scrollbar-container" id="volume-container">
                             <div class="scrollbar-track">
-                                <div class="scrollbar-fill"
+                                <div class="scrollbar-fill" id="volume-fill"
                                     style="width: 70%;"></div>
                             </div>
                         </div>
