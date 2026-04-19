@@ -357,6 +357,9 @@ body.light-mode .lyrics-section {
     border-radius: 50%;
     background-color: var(--text-primary);
     color: var(--bg-main) !important;
+    border: 2px solid transparent;
+    /* Reserves space for the border */
+    transition: 0.2s all;
 }
 
 .btn-play-pause i {
@@ -366,37 +369,76 @@ body.light-mode .lyrics-section {
 
 .btn-play-pause:hover {
     transform: scale(1.1);
-    background-color: var(--accent-hover);
+    background-color: var(--accent-bg);
+    border-color: var(--text-primary);
+    /* Adds a sharp, bright white border to fix contrast! */
     color: white !important;
 }
 
+/* --- SCROLLBARS (Playback & Volume) --- */
 .scrollbar-container {
     position: relative;
     flex: 1;
-    height: 12px;
+    height: 16px;
+    /* Slightly taller hit-area for easier dragging */
     display: flex;
     align-items: center;
     cursor: pointer;
 }
 
+/* The empty part of the track (Brighter now!) */
 .scrollbar-track {
     width: 100%;
     height: 4px;
-    background-color: rgba(100, 100, 100, 0.3);
+    background-color: rgba(255, 255, 255, 0.25);
+    /* Changed from dark gray to 25% white */
     border-radius: 2px;
-    overflow: hidden;
+    position: relative;
+    /* Removed overflow: hidden so the thumb can pop out */
 }
 
+/* Light mode override for the empty track */
+body.light-mode .scrollbar-track {
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+/* The filled part of the track */
 .scrollbar-fill {
     height: 100%;
     background-color: var(--text-primary);
     border-radius: 2px;
     transition: background-color 0.2s;
+    position: relative;
 }
 
-/* Scrollbar hovers use the background accent color */
+/* The "Thumb" (Little circle at the end of the progress bar) */
+.scrollbar-fill::after {
+    content: '';
+    position: absolute;
+    right: -5px;
+    /* Centers the dot on the end of the fill */
+    top: 50%;
+    transform: translateY(-50%) scale(0);
+    /* Hidden by default */
+    width: 10px;
+    height: 10px;
+    background-color: var(--text-primary);
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    transition: transform 0.1s ease-out, background-color 0.2s;
+}
+
+/* Hover States for the entire container */
 .scrollbar-container:hover .scrollbar-fill {
-    background-color: var(--accent-hover);
+    background-color: var(--accent-text);
+    /* Now uses the brighter neon violet! */
+}
+
+/* Show the thumb and match the accent color on hover */
+.scrollbar-container:hover .scrollbar-fill::after {
+    transform: translateY(-50%) scale(1);
+    background-color: var(--accent-text);
+    /* Now uses the brighter neon violet! */
 }
 
 /* --- TOP BAR & SETTINGS --- */
