@@ -1,33 +1,87 @@
+/* =========================================
+   SETTINGS & LOCAL STORAGE LOGIC
+========================================= */
 const settingsBtn = document.getElementById('settings-btn');
 const settingsModal = document.getElementById('settings-modal');
 const closeSettingsBtn = document.getElementById('close-settings-btn');
+
+// Input Elements
 const themeToggle = document.getElementById('theme-toggle');
+const qualitySelect = document.getElementById('quality-select');
+const crossfadeSlider = document.getElementById('crossfade-slider');
+const crossfadeVal = document.getElementById('crossfade-val');
+const explicitToggle = document.getElementById('explicit-toggle');
 
-// Open Modal
-settingsBtn.addEventListener('click', () => {
-    settingsModal.classList.add('active');
+// 1. Default Settings Object
+let appSettings = {
+    lightMode: false,
+    audioQuality: 'high',
+    crossfade: 0,
+    allowExplicit: true
+};
+
+// 2. Load settings from Local Storage
+const savedSettings = localStorage.getItem('vibez_settings');
+if (savedSettings) {
+    appSettings = JSON.parse(savedSettings); // Overwrite defaults with saved data
+}
+
+// 3. Apply settings to the UI
+function applySettings() {
+    // Theme
+    themeToggle.checked = appSettings.lightMode;
+    if (appSettings.lightMode) document.body.classList.add('light-mode');
+    else document.body.classList.remove('light-mode');
+    
+    // Quality
+    qualitySelect.value = appSettings.audioQuality;
+    
+    // Crossfade
+    crossfadeSlider.value = appSettings.crossfade;
+    crossfadeVal.innerText = appSettings.crossfade + 's';
+    
+    // Explicit Content
+    explicitToggle.checked = appSettings.allowExplicit;
+}
+
+// 4. Save to Local Storage function
+function saveSettings() {
+    localStorage.setItem('vibez_settings', JSON.stringify(appSettings));
+}
+
+// --- Event Listeners for Setting Changes ---
+themeToggle.addEventListener('change', (e) => {
+    appSettings.lightMode = e.target.checked;
+    applySettings(); // Instantly visually update theme
+    saveSettings();
 });
 
-// Close Modal
-closeSettingsBtn.addEventListener('click', () => {
-    settingsModal.classList.remove('active');
+qualitySelect.addEventListener('change', (e) => {
+    appSettings.audioQuality = e.target.value;
+    saveSettings();
 });
 
-// Close when clicking outside the panel
+crossfadeSlider.addEventListener('input', (e) => {
+    appSettings.crossfade = e.target.value;
+    crossfadeVal.innerText = e.target.value + 's';
+    saveSettings();
+});
+
+explicitToggle.addEventListener('change', (e) => {
+    appSettings.allowExplicit = e.target.checked;
+    saveSettings();
+});
+
+// Modal open/close logic
+settingsBtn.addEventListener('click', () => settingsModal.classList.add('active'));
+closeSettingsBtn.addEventListener('click', () => settingsModal.classList.remove('active'));
 settingsModal.addEventListener('click', (e) => {
-    if (e.target === settingsModal) {
-        settingsModal.classList.remove('active');
-    }
+    if (e.target === settingsModal) settingsModal.classList.remove('active');
 });
 
-// Toggle Light/Dark Mode
-themeToggle.addEventListener('change', () => {
-    if (themeToggle.checked) {
-        document.body.classList.add('light-mode');
-    } else {
-        document.body.classList.remove('light-mode');
-    }
-});
+// Initialize on page load
+applySettings();
+
 
 /* =========================================
    LYRICS TOGGLE LOGIC
@@ -36,9 +90,7 @@ const lyricsBtn = document.getElementById('btn-lyrics-toggle');
 const lyricsPanel = document.getElementById('lyrics-panel');
 
 lyricsBtn.addEventListener('click', () => {
-    // Toggle the hidden class on the panel
     lyricsPanel.classList.toggle('hidden');
-    // Toggle the colored active state on the button
     lyricsBtn.classList.toggle('active');
 });
 
@@ -51,53 +103,35 @@ const muteBtn = document.getElementById('btn-mute');
 const muteIcon = document.getElementById('mute-icon');
 
 let isDraggingVolume = false;
-let currentVolume = 0.7; // Represents 70%
-let previousVolume = 0.7; // Remembers volume before muting
+let currentVolume = 0.7; 
+let previousVolume = 0.7; 
 
-// Function to update the UI visually
 function updateVolumeUI(percentage) {
-    // Clamp the percentage between 0 and 1 so it doesn't break out of the bar
     percentage = Math.max(0, Math.min(1, percentage));
     currentVolume = percentage;
-
-    // Update the visual bar width
-    volumeFill.style.width = percentage * 100 + '%';
-
-    // Dynamically change the Font Awesome icon based on volume level
-    if (percentage === 0) {
-        muteIcon.className = 'fa-light fa-volume-xmark icon-sm';
-    } else if (percentage < 0.5) {
-        muteIcon.className = 'fa-light fa-volume-low icon-sm';
-    } else {
-        muteIcon.className = 'fa-light fa-volume-high icon-sm';
-    }
+    volumeFill.style.width = (percentage * 100) + '%';
+    
+    if (percentage === 0) muteIcon.className = 'fa-light fa-volume-xmark icon-sm';
+    else if (percentage < 0.5) muteIcon.className = 'fa-light fa-volume-low icon-sm';
+    else muteIcon.className = 'fa-light fa-volume-high icon-sm';
 }
 
-// Function to calculate volume based on mouse position
 function setVolumeFromEvent(e) {
     const rect = volumeContainer.getBoundingClientRect();
-    // Calculate where the mouse is relative to the container's width
     const percentage = (e.clientX - rect.left) / rect.width;
     updateVolumeUI(percentage);
-
-    // Note: Later, you will also add `audioPlayer.volume = currentVolume;` here
 }
 
-// 1. Start dragging on Mouse Down
 volumeContainer.addEventListener('mousedown', (e) => {
     isDraggingVolume = true;
-    document.body.classList.add('dragging'); // Prevents text selection
+    document.body.classList.add('dragging'); 
     setVolumeFromEvent(e);
 });
 
-// 2. Update while dragging on Mouse Move
 window.addEventListener('mousemove', (e) => {
-    if (isDraggingVolume) {
-        setVolumeFromEvent(e);
-    }
+    if (isDraggingVolume) setVolumeFromEvent(e);
 });
 
-// 3. Stop dragging on Mouse Up
 window.addEventListener('mouseup', () => {
     if (isDraggingVolume) {
         isDraggingVolume = false;
@@ -105,14 +139,11 @@ window.addEventListener('mouseup', () => {
     }
 });
 
-// 4. Mute Button Click Logic
 muteBtn.addEventListener('click', () => {
     if (currentVolume > 0) {
-        // Mute: Save current volume and set to 0
         previousVolume = currentVolume;
         updateVolumeUI(0);
     } else {
-        // Unmute: Restore previous volume (default to 70% if there wasn't one)
         updateVolumeUI(previousVolume > 0 ? previousVolume : 0.7);
     }
 });

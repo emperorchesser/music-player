@@ -595,3 +595,33 @@ body.dragging {
     -webkit-user-select: none;
     user-select: none;
 }
+
+/* --- UPDATED ARTIST LINKS --- */
+.track-title-link { font-size: 14px; font-weight: bold; color: var(--text-primary); text-decoration: none; cursor: pointer; transition: 0.2s;}
+.track-title-link:hover { text-decoration: underline; color: var(--accent-text); }
+
+.track-artists { font-size: 12px; color: var(--text-secondary); }
+.artist-link { color: var(--text-secondary); text-decoration: none; transition: 0.2s; }
+.artist-link:hover { text-decoration: underline; color: var(--text-primary); }
+
+/* --- SETTINGS MENU INPUTS --- */
+.setting-item { 
+    display: flex; justify-content: space-between; align-items: center; 
+    font-size: 15px; margin-bottom: 20px; 
+}
+.settings-select {
+    background-color: rgba(255,255,255,0.1);
+    color: var(--text-primary);
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 6px 12px;
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+}
+body.light-mode .settings-select {
+    background-color: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.2); color: var(--text-primary);
+}
+.settings-range {
+    accent-color: var(--accent-bg); /* Uses your beautiful violet color! */
+    cursor: pointer;
+}

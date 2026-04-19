@@ -201,9 +201,15 @@
                 <div class="now-playing">
                     <div class="artwork"></div>
                     <div class="track-info">
-                        <div class="track-title-link">Neon Horizons</div>
-                        <div class="track-artists-link">The Synthtones ft. MC
-                            Beat</div>
+                        <!-- Changed to an anchor tag for semantic linking -->
+                        <a href="#" class="track-title-link">Neon Horizons</a>
+
+                        <!-- Separated the artists into multiple links! -->
+                        <div class="track-artists">
+                            <a href="#" class="artist-link">The Synthtones</a>
+                            ft.
+                            <a href="#" class="artist-link">MC Beat</a>
+                        </div>
                     </div>
                     <button class="btn">
                         <i class="fa-light fa-heart icon-sm"></i>
@@ -277,10 +283,42 @@
                             class="fa-light fa-xmark"></i></button>
                 </div>
                 <div class="settings-content">
+                    <!-- 1. Theme Toggle -->
                     <div class="setting-item">
                         <span>Light Mode</span>
                         <label class="theme-switch">
                             <input type="checkbox" id="theme-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- 2. Audio Quality Dropdown -->
+                    <div class="setting-item">
+                        <span>Audio Quality</span>
+                        <select id="quality-select" class="settings-select">
+                            <option value="normal">Normal (128kbps)</option>
+                            <option value="high">High (320kbps)</option>
+                        </select>
+                    </div>
+
+                    <!-- 3. Crossfade Slider -->
+                    <div class="setting-item">
+                        <span>Crossfade Songs</span>
+                        <div
+                            style="display: flex; align-items: center; gap: 10px;">
+                            <input type="range" id="crossfade-slider" min="0"
+                                max="12" value="0" class="settings-range">
+                            <span id="crossfade-val"
+                                style="width: 25px; text-align: right; color: var(--text-secondary);">0s</span>
+                        </div>
+                    </div>
+
+                    <!-- 4. Explicit Content Toggle -->
+                    <div class="setting-item">
+                        <span>Allow Explicit Content</span>
+                        <label class="theme-switch">
+                            <input type="checkbox" id="explicit-toggle"
+                                checked>
                             <span class="slider"></span>
                         </label>
                     </div>
