@@ -11,5 +11,13 @@
     ],
     "no-inline-styles": "off",
     "axe/forms": "off"
-  }
+  },
+  "browserslist": [
+    "defaults",
+    "not ie 11",
+    "not chrome <= 116",
+    "not ios_saf <= 26.3",
+    "not safari <= 26.3",
+    "not samsung <= 29"
+  ]
 }

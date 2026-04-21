@@ -51,6 +51,51 @@ body {
     overflow: hidden;
 }
 
+/* --- CUSTOM PAGE SCROLLBARS (Cross-Browser) --- */
+
+/* 1. Firefox & Modern Standard Support */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+body.light-mode * {
+    scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+/* 2. Chrome, Edge, Safari Support */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Explicitly hide the ugly up/down arrows */
+::-webkit-scrollbar-button {
+    display: none;
+}
+
+/* Chrome/Edge Light Mode Overrides */
+body.light-mode ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+}
+
+body.light-mode ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
 /* --- ICONS (Font Awesome Overrides) --- */
 .icon {
     font-size: 20px;
@@ -448,30 +493,42 @@ body.light-mode .scrollbar-track {
     margin-bottom: 10px;
 }
 
+/* --- ANIMATED SETTINGS BUTTON (Contrast Fixed) --- */
 .btn-settings {
-    background-color: rgba(0, 0, 0, 0.3);
+    /* Changed to transparent white so it contrasts perfectly in dark mode */
+    background-color: rgba(255, 255, 255, 0.1);
     border: none;
     border-radius: 50%;
     width: 40px;
     height: 40px;
     color: var(--text-primary);
     cursor: pointer;
-    transition: 0.2s;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .btn-settings:hover {
-    background-color: rgba(0, 0, 0, 0.6);
+    background-color: rgba(255, 255, 255, 0.2);
     transform: rotate(45deg);
 }
 
-body.light-mode .btn-settings {
-    background-color: rgba(255, 255, 255, 0.5);
+.btn-settings:active {
+    transform: rotate(135deg) scale(0.85);
 }
 
-/* --- SETTINGS MODAL --- */
+/* PERFECT CONTRAST FOR LIGHT MODE */
+body.light-mode .btn-settings {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+body.light-mode .btn-settings:hover {
+    background-color: rgba(0, 0, 0, 0.15);
+}
+
+
+/* --- SETTINGS MODAL ANIMATIONS --- */
 .settings-overlay {
     position: fixed;
     top: 0;
@@ -479,16 +536,17 @@ body.light-mode .btn-settings {
     width: 100vw;
     height: 100vh;
     background-color: rgba(0, 0, 0, 0.6);
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
     -webkit-backdrop-filter: blur(4px);
     backdrop-filter: blur(4px);
-}
-
-.settings-overlay.active {
+    z-index: 1000;
     display: flex;
+    justify-content: center;
+    align-items: center;
+
+    /* ANIMATION SETUP */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
 .settings-panel {
@@ -497,15 +555,122 @@ body.light-mode .btn-settings {
     border-radius: 8px;
     padding: 24px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+
+    /* ANIMATION SETUP: Start small and slightly pushed down */
+    transform: scale(0.95) translateY(20px);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.settings-header {
+/* WHEN THE MODAL IS OPEN */
+.settings-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.settings-overlay.active .settings-panel {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+}
+
+
+/* --- CUSTOM ANIMATED DROPDOWN --- */
+.custom-dropdown {
+    position: relative;
+    width: 170px;
+    font-size: 14px;
+}
+
+.dropdown-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding-bottom: 10px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+/* When Dropdown is Open */
+.custom-dropdown.open .dropdown-header {
+    border-color: var(--text-primary);
+}
+
+.custom-dropdown.open .select-arrow {
+    transform: rotate(180deg);
+}
+
+.select-arrow {
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* The Animated Dropdown List */
+.dropdown-options {
+    position: absolute;
+    top: 115%;
+    left: 0;
+    width: 100%;
+    background-color: var(--bg-panel);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    list-style: none;
+    padding: 4px;
+    margin: 0;
+    z-index: 10;
+
+    /* ANIMATION SETUP */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Pops open! */
+.custom-dropdown.open .dropdown-options {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.dropdown-options li {
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: 0.2s;
+    color: var(--text-secondary);
+}
+
+.dropdown-options li:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+.dropdown-options li.active-option {
+    color: var(--accent-text);
+    font-weight: bold;
+}
+
+/* Light Mode Overrides for Dropdown */
+body.light-mode .dropdown-header {
+    background-color: rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 0, 0, 0.2);
+}
+
+body.light-mode .dropdown-options {
+    border-color: rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+body.light-mode .dropdown-options li:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+body.light-mode .dropdown-options li.active-option {
+    color: var(--accent-bg);
 }
 
 .btn-close {
@@ -524,6 +689,7 @@ body.light-mode .btn-settings {
 }
 
 /* Toggle Switch */
+/* --- TOGGLE SWITCHES (Settings) --- */
 .theme-switch {
     position: relative;
     display: inline-block;
@@ -544,9 +710,17 @@ body.light-mode .btn-settings {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: #666;
+    background-color: #444;
     transition: .4s;
     border-radius: 24px;
+
+    /* NEW: Crisp border around the toggle */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+body.light-mode .slider {
+    background-color: #ccc;
+    border-color: rgba(0, 0, 0, 0.2);
 }
 
 .slider:before {
@@ -554,16 +728,25 @@ body.light-mode .btn-settings {
     content: "";
     height: 18px;
     width: 18px;
-    left: 3px;
-    bottom: 3px;
+    /* Tweaked to 2px to account for the 1px border */
+    left: 2px;
+    bottom: 2px;
     background-color: white;
     transition: .4s;
     border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-/* Toggle switch active state uses the solid background accent */
+/* Active (Checked) State */
 input:checked+.slider {
     background-color: var(--accent-bg);
+    border-color: rgba(255, 255, 255, 0.4);
+    /* Changed from var(--accent-bg) to give you that white border! */
+}
+
+/* Make sure it has a dark border in Light Mode */
+body.light-mode input:checked+.slider {
+    border-color: rgba(0, 0, 0, 0.2);
 }
 
 input:checked+.slider:before {
@@ -597,31 +780,226 @@ body.dragging {
 }
 
 /* --- UPDATED ARTIST LINKS --- */
-.track-title-link { font-size: 14px; font-weight: bold; color: var(--text-primary); text-decoration: none; cursor: pointer; transition: 0.2s;}
-.track-title-link:hover { text-decoration: underline; color: var(--accent-text); }
+.track-title-link {
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--text-primary);
+    text-decoration: none;
+    cursor: pointer;
+    transition: 0.2s;
+}
 
-.track-artists { font-size: 12px; color: var(--text-secondary); }
-.artist-link { color: var(--text-secondary); text-decoration: none; transition: 0.2s; }
-.artist-link:hover { text-decoration: underline; color: var(--text-primary); }
+.track-title-link:hover {
+    text-decoration: underline;
+    color: var(--accent-text);
+}
+
+.track-artists {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.artist-link {
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: 0.2s;
+}
+
+.artist-link:hover {
+    text-decoration: underline;
+    color: var(--text-primary);
+}
 
 /* --- SETTINGS MENU INPUTS --- */
-.setting-item { 
-    display: flex; justify-content: space-between; align-items: center; 
-    font-size: 15px; margin-bottom: 20px; 
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 15px;
+    margin-bottom: 20px;
 }
-.settings-select {
-    background-color: rgba(255,255,255,0.1);
+
+/* --- CUSTOM ANIMATED DROPDOWN --- */
+.custom-dropdown {
+    position: relative;
+    width: 170px;
+    font-size: 14px;
+}
+
+.dropdown-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.1);
     color: var(--text-primary);
-    border: 1px solid rgba(255,255,255,0.2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     padding: 6px 12px;
     border-radius: 4px;
-    outline: none;
     cursor: pointer;
+    transition: 0.2s;
 }
+
+.custom-dropdown.open .dropdown-header {
+    border-color: var(--text-primary);
+}
+
+.custom-dropdown.open .select-arrow {
+    transform: rotate(180deg);
+}
+
+.select-arrow {
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.dropdown-options {
+    position: absolute;
+    top: 115%;
+    left: 0;
+    width: 100%;
+    background-color: var(--bg-panel);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    list-style: none;
+    padding: 4px;
+    margin: 0;
+    z-index: 10;
+
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.custom-dropdown.open .dropdown-options {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.dropdown-options li {
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: 0.2s;
+    color: var(--text-secondary);
+}
+
+.dropdown-options li:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+.dropdown-options li.active-option {
+    color: var(--accent-text);
+    font-weight: bold;
+}
+
+/* Light Mode Overrides for Dropdown */
+body.light-mode .dropdown-header {
+    background-color: rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 0, 0, 0.2);
+}
+
+body.light-mode .dropdown-options {
+    border-color: rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+body.light-mode .dropdown-options li:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+body.light-mode .dropdown-options li.active-option {
+    color: var(--accent-bg);
+}
+
+/* The Font Awesome Icon */
+.select-arrow {
+    position: absolute;
+    right: 12px;
+    /* Positions it nicely on the right edge */
+    font-size: 14px;
+    color: var(--text-primary);
+    pointer-events: none;
+    /* Crucial: Lets your mouse click directly through the icon onto the select box! */
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* ANIMATION: When the select box is focused (clicked open), flip the arrow! */
+.settings-select:focus+.select-arrow {
+    transform: rotate(180deg);
+}
+
+/* Light Mode Overrides */
 body.light-mode .settings-select {
-    background-color: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.2); color: var(--text-primary);
+    background-color: rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 0, 0, 0.2);
 }
+
+body.light-mode .select-arrow {
+    color: var(--text-primary);
+}
+
+/* --- CUSTOM RANGE SLIDER (Crossfade) --- */
 .settings-range {
-    accent-color: var(--accent-bg); /* Uses your beautiful violet color! */
+    -webkit-appearance: none;
+    /* Removes native OS styling */
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    outline: none;
+}
+
+body.light-mode .settings-range {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+/* The draggable "thumb" on the slider */
+.settings-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--text-primary);
     cursor: pointer;
+    transition: 0.2s all;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.settings-range::-webkit-slider-thumb:hover {
+    background: var(--accent-text);
+    transform: scale(1.2);
+    /* Pops up slightly on hover! */
+}
+
+/* --- SETTINGS MODAL HEADER FIX --- */
+.settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 10px;
+}
+
+/* Light mode override for the border */
+body.light-mode .settings-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.btn-close {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 20px;
+    cursor: pointer;
+    transition: 0.2s all;
+}
+
+.btn-close:hover {
+    color: var(--accent-bg);
+    transform: scale(1.1);
 }
