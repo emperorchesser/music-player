@@ -242,6 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
     /* =========================================
        JSON DATABASE & DATA BINDING
     ========================================= */
@@ -250,42 +251,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const npArtists = document.getElementById('now-playing-artists');
     const npArtwork = document.getElementById('now-playing-artwork');
 
-    // 1. Load the Music Database (No server required!)
     function loadMusicDatabase() {
         try {
-            // We just read the variable directly from database.js
             const data = musicData;
-
-            // Populate the grid
             renderRecentlyAdded(data.songs);
-
-            // Load the first song into the player bar automatically
             if (data.songs.length > 0) {
-                loadTrackIntoPlayer(data.songs[0]);
+                loadTrackIntoPlayer(data.songs[0]); // Loads but doesn't auto-play on boot
             }
         } catch (error) {
-            console.error('Failed to load music database:', error);
-            if (recentlyAddedGrid) {
-                recentlyAddedGrid.innerHTML =
-                    "<p style='color: var(--text-secondary);'>Could not load library data.</p>";
-            }
+            console.error('Failed to load database:', error);
         }
     }
 
     // 2. Render the Grid dynamically
     function renderRecentlyAdded(songs) {
         if (!recentlyAddedGrid) return;
-        recentlyAddedGrid.innerHTML = ''; // Clear out any placeholders
+        recentlyAddedGrid.innerHTML = '';
 
-        songs.forEach((song) => {
-            // Build the string for Main Artists
+        // RESTRICTION: Only show the first 6 items
+        const limitedSongs = songs.slice(0, 6);
+
+        limitedSongs.forEach((song) => {
             let artistString = song.artists.join(', ');
-
-            // Create the card element
             const card = document.createElement('div');
             card.className = 'album-card';
 
-            // Note the new .album-art-container and .card-play-btn!
             card.innerHTML = `
                 <div class="album-art-container">
                     <div class="album-art" style="background: ${song.artwork}"></div>
@@ -295,11 +285,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 <p>${song.albumType} • ${artistString}</p>
             `;
 
-            // Make the card clickable to play the song
+            // Click card to instantly Play
             card.addEventListener('click', () => {
                 loadTrackIntoPlayer(song);
+                audioPlayer.play();
+                isPlaying = true;
+                mainPlayPauseBtn.innerHTML =
+                    '<i class="fa-solid fa-pause"></i>';
             });
-
             recentlyAddedGrid.appendChild(card);
         });
     }
@@ -308,45 +301,49 @@ document.addEventListener('DOMContentLoaded', () => {
     function loadTrackIntoPlayer(song) {
         if (!npTitle || !npArtists || !npArtwork) return;
 
-        // Set Title & Art
         npTitle.innerText = song.title;
-        npTitle.href = `song.html?id=${song.id}`; // Prep for routing later!
         npArtwork.style.background = song.artwork;
-
-        // Build the Artist String with Links (Main Artists + Featured)
-        let mainArtistsHTML = song.artists
-            .map((a) => `<a href="#" class="artist-link">${a}</a>`)
-            .join(', ');
-
+        
+        let mainArtistsHTML = song.artists.map(a => `<a href="#" class="artist-link">${a}</a>`).join(", ");
         if (song.featuredArtists && song.featuredArtists.length > 0) {
-            let featArtistsHTML = song.featuredArtists
-                .map((a) => `<a href="#" class="artist-link">${a}</a>`)
-                .join(', ');
+            let featArtistsHTML = song.featuredArtists.map(a => `<a href="#" class="artist-link">${a}</a>`).join(", ");
             npArtists.innerHTML = `${mainArtistsHTML} ft. ${featArtistsHTML}`;
         } else {
             npArtists.innerHTML = mainArtistsHTML;
+        }
+
+        // LOAD AUDIO FILE
+        if (song.audioFile) {
+            audioPlayer.src = song.audioFile;
         }
     }
 
     // Trigger the load sequence
     loadMusicDatabase();
     /* =========================================
-       AUDIO ENGINE LOGIC
+       AUDIO ENGINE LOGIC (PLAYBACK & PROGRESS)
     ========================================= */
     const audioPlayer = document.getElementById('main-audio-player');
     const mainPlayPauseBtn = document.querySelector('.btn-play-pause');
+    
+    // Progress Bar DOM elements
+    const currentTimeLabel = document.getElementById('current-time');
+    const totalTimeLabel = document.getElementById('total-time');
+    const playbackFill = document.getElementById('playback-fill');
+    
     let isPlaying = false;
 
-    // 1. Toggle Play/Pause UI and Audio
-    function togglePlay() {
-        if (
-            !audioPlayer.src ||
-            audioPlayer.src.endsWith(window.location.host + '/')
-        ) {
-            console.warn('No audio source loaded yet!');
-            return;
-        }
+    // Time Formatter helper (turns 125 seconds into "2:05")
+    function formatTime(seconds) {
+        if (isNaN(seconds)) return "0:00";
+        const min = Math.floor(seconds / 60);
+        const sec = Math.floor(seconds % 60);
+        return `${min}:${sec < 10 ? '0' : ''}${sec}`;
+    }
 
+    // Toggle Play/Pause
+    function togglePlay() {
+        if (!audioPlayer.src) return;
         if (isPlaying) {
             audioPlayer.pause();
             mainPlayPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
@@ -357,8 +354,25 @@ document.addEventListener('DOMContentLoaded', () => {
         isPlaying = !isPlaying;
     }
 
-    // 2. Click event for the main control bar play button
-    if (mainPlayPauseBtn) {
-        mainPlayPauseBtn.addEventListener('click', togglePlay);
-    }
+    if (mainPlayPauseBtn) mainPlayPauseBtn.addEventListener('click', togglePlay);
+
+    // Update Progress Bar as song plays
+    audioPlayer.addEventListener('timeupdate', () => {
+        const percent = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+        if (playbackFill) playbackFill.style.width = `${percent}%`;
+        if (currentTimeLabel) currentTimeLabel.innerText = formatTime(audioPlayer.currentTime);
+    });
+
+    // Update Total Time when a new song loads
+    audioPlayer.addEventListener('loadedmetadata', () => {
+        if (totalTimeLabel) totalTimeLabel.innerText = formatTime(audioPlayer.duration);
+    });
+
+    // Reset Play button when song finishes
+    audioPlayer.addEventListener('ended', () => {
+        isPlaying = false;
+        mainPlayPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+        if (playbackFill) playbackFill.style.width = '0%';
+        if (currentTimeLabel) currentTimeLabel.innerText = "0:00";
+    });
 }); // End of DOMContentLoaded

@@ -999,8 +999,9 @@ body.light-mode .settings-header {
     transition: 0.2s all;
 }
 
+/* --- SETTINGS MODAL HEADER FIX --- */
 .btn-close:hover {
-    color: var(--accent-bg);
+    color: var(--accent-text); /* Matches the slider hover color! */
     transform: scale(1.1);
 }
 
@@ -1048,6 +1049,17 @@ body.light-mode .settings-header {
     opacity: 0;
     transform: translateY(10px);
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* --- ALBUM CARD HOVER PLAY BUTTON --- */
+/* Add this right below your .card-play-btn styles */
+
+/* Light Mode Play Button Border */
+body.light-mode .card-play-btn {
+    border: 2px solid rgba(255, 255, 255); /* Visible subtle border when not hovered */
+}
+body.light-mode .card-play-btn:hover {
+    border-color: rgba(150, 150, 150); /* Darkens slightly on hover */
 }
 
 /* When hovering over the whole card, the button slides up and fades in! */
