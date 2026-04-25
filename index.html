@@ -148,8 +148,8 @@
                     <!-- Section 2: Recently Added (Directly from JSON Database) -->
                     <section class="home-section" style="margin-top: 40px;">
                         <h2 class="section-title">Recently Added</h2>
-                        <div class="album-grid">
-                            <div class="album-card">
+                        <div class="album-grid" id="recently-added-grid">
+                            <!-- <div class="album-card">
                                 <div class="album-art"></div>
                                 <h4>Neon Horizons</h4>
                                 <p>Single • DJ Chill</p>
@@ -173,7 +173,7 @@
                                 <div class="album-art"></div>
                                 <h4>Midnight City</h4>
                                 <p>EP • Various Artists</p>
-                            </div>
+                            </div> -->
                         </div>
                     </section>
                 </main>
@@ -199,17 +199,12 @@
 
                 <!-- 1. Now Playing -->
                 <div class="now-playing">
-                    <div class="artwork"></div>
+                    <div class="artwork" id="now-playing-artwork"></div>
                     <div class="track-info">
-                        <!-- Changed to an anchor tag for semantic linking -->
-                        <a href="#" class="track-title-link">Neon Horizons</a>
-
-                        <!-- Separated the artists into multiple links! -->
-                        <div class="track-artists">
-                            <a href="#" class="artist-link">The Synthtones</a>
-                            ft.
-                            <a href="#" class="artist-link">MC Beat</a>
-                        </div>
+                        <a href="#" class="track-title-link"
+                            id="now-playing-title">Loading...</a>
+                        <div class="track-artists"
+                            id="now-playing-artists">Loading...</div>
                     </div>
                     <button class="btn">
                         <i class="fa-light fa-heart icon-sm"></i>
@@ -339,6 +334,10 @@
             </div>
         </div>
 
+        <!-- HIDDEN AUDIO ENGINE -->
+        <audio id="main-audio-player"></audio>
+
+        <script src="database.js"></script>
         <script src="script.js?v=2"></script>
     </body>
 </html>

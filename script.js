@@ -242,4 +242,123 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    /* =========================================
+       JSON DATABASE & DATA BINDING
+    ========================================= */
+    const recentlyAddedGrid = document.getElementById('recently-added-grid');
+    const npTitle = document.getElementById('now-playing-title');
+    const npArtists = document.getElementById('now-playing-artists');
+    const npArtwork = document.getElementById('now-playing-artwork');
+
+    // 1. Load the Music Database (No server required!)
+    function loadMusicDatabase() {
+        try {
+            // We just read the variable directly from database.js
+            const data = musicData;
+
+            // Populate the grid
+            renderRecentlyAdded(data.songs);
+
+            // Load the first song into the player bar automatically
+            if (data.songs.length > 0) {
+                loadTrackIntoPlayer(data.songs[0]);
+            }
+        } catch (error) {
+            console.error('Failed to load music database:', error);
+            if (recentlyAddedGrid) {
+                recentlyAddedGrid.innerHTML =
+                    "<p style='color: var(--text-secondary);'>Could not load library data.</p>";
+            }
+        }
+    }
+
+    // 2. Render the Grid dynamically
+    function renderRecentlyAdded(songs) {
+        if (!recentlyAddedGrid) return;
+        recentlyAddedGrid.innerHTML = ''; // Clear out any placeholders
+
+        songs.forEach((song) => {
+            // Build the string for Main Artists
+            let artistString = song.artists.join(', ');
+
+            // Create the card element
+            const card = document.createElement('div');
+            card.className = 'album-card';
+
+            // Note the new .album-art-container and .card-play-btn!
+            card.innerHTML = `
+                <div class="album-art-container">
+                    <div class="album-art" style="background: ${song.artwork}"></div>
+                    <button class="card-play-btn"><i class="fa-solid fa-play"></i></button>
+                </div>
+                <h4>${song.title} ${song.explicit ? '<span style="background:var(--text-secondary); color:var(--bg-main); font-size:10px; padding:2px 4px; border-radius:3px; vertical-align:middle; margin-left:4px;">E</span>' : ''}</h4>
+                <p>${song.albumType} • ${artistString}</p>
+            `;
+
+            // Make the card clickable to play the song
+            card.addEventListener('click', () => {
+                loadTrackIntoPlayer(song);
+            });
+
+            recentlyAddedGrid.appendChild(card);
+        });
+    }
+
+    // 3. Update the Control Bar with Song Data
+    function loadTrackIntoPlayer(song) {
+        if (!npTitle || !npArtists || !npArtwork) return;
+
+        // Set Title & Art
+        npTitle.innerText = song.title;
+        npTitle.href = `song.html?id=${song.id}`; // Prep for routing later!
+        npArtwork.style.background = song.artwork;
+
+        // Build the Artist String with Links (Main Artists + Featured)
+        let mainArtistsHTML = song.artists
+            .map((a) => `<a href="#" class="artist-link">${a}</a>`)
+            .join(', ');
+
+        if (song.featuredArtists && song.featuredArtists.length > 0) {
+            let featArtistsHTML = song.featuredArtists
+                .map((a) => `<a href="#" class="artist-link">${a}</a>`)
+                .join(', ');
+            npArtists.innerHTML = `${mainArtistsHTML} ft. ${featArtistsHTML}`;
+        } else {
+            npArtists.innerHTML = mainArtistsHTML;
+        }
+    }
+
+    // Trigger the load sequence
+    loadMusicDatabase();
+    /* =========================================
+       AUDIO ENGINE LOGIC
+    ========================================= */
+    const audioPlayer = document.getElementById('main-audio-player');
+    const mainPlayPauseBtn = document.querySelector('.btn-play-pause');
+    let isPlaying = false;
+
+    // 1. Toggle Play/Pause UI and Audio
+    function togglePlay() {
+        if (
+            !audioPlayer.src ||
+            audioPlayer.src.endsWith(window.location.host + '/')
+        ) {
+            console.warn('No audio source loaded yet!');
+            return;
+        }
+
+        if (isPlaying) {
+            audioPlayer.pause();
+            mainPlayPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+        } else {
+            audioPlayer.play();
+            mainPlayPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+        }
+        isPlaying = !isPlaying;
+    }
+
+    // 2. Click event for the main control bar play button
+    if (mainPlayPauseBtn) {
+        mainPlayPauseBtn.addEventListener('click', togglePlay);
+    }
 }); // End of DOMContentLoaded
