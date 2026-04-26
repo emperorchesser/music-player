@@ -229,15 +229,19 @@
                                 class="fa-light fa-repeat icon-sm"></i></button>
                     </div>
 
+                    <!-- PROGRESS BAR WRAPPER -->
                     <div class="playback-scrollbar-wrapper">
                         <span class="time-label" id="current-time">0:00</span>
+
                         <div class="scrollbar-container"
                             id="playback-scrollbar">
                             <div class="scrollbar-track">
-                                <div class="scrollbar-fill"
+                                <!-- CRITICAL FIX: Ensure id="playback-fill" is right here! -->
+                                <div class="scrollbar-fill" id="playback-fill"
                                     style="width: 0%;"></div>
                             </div>
                         </div>
+
                         <span class="time-label" id="total-time">0:00</span>
                     </div>
                 </div>
