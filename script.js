@@ -29,7 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
         allowExplicit: true,
         lastPlayedSongId: null,
         lastPlayedTime: 0,
-        isLyricsHidden: false, // NEW
+        isLyricsHidden: false,
+        repeatState: 0, // NEW: 0=Off, 1=RepeatAll, 2=RepeatOne
     };
     let appSettings = { ...defaultSettings };
 
@@ -110,6 +111,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const playbackFill = document.getElementById('playback-fill');
 
     let isPlaying = false;
+    let currentAlbumData = null;
+    let currentTrackIndex = 0;
     let isDraggingPlayback = false;
     let scrubTime = 0;
     let isBootingUp = true; // Tracks if this is the initial page load
@@ -159,12 +162,114 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    audioPlayer.addEventListener('ended', () => {
-        isPlaying = false;
+    // --- SKIP, PREVIOUS & REPEAT LOGIC ---
+    const btnNext = document.getElementById('btn-next');
+    const btnPrev = document.getElementById('btn-prev');
+    const btnRepeat = document.getElementById('btn-repeat');
+
+    // Update the Repeat Button UI
+    function updateRepeatUI() {
+        if (!btnRepeat) return;
+        if (appSettings.repeatState === 0) {
+            btnRepeat.innerHTML = '<i class="fa-light fa-repeat icon-sm"></i>';
+            btnRepeat.classList.remove('active'); // Gray
+        } else if (appSettings.repeatState === 1) {
+            btnRepeat.innerHTML = '<i class="fa-light fa-repeat icon-sm"></i>';
+            btnRepeat.classList.add('active'); // Colored (Repeat All)
+        } else {
+            // Font Awesome Pro has fa-repeat-1 for "Repeat One"
+            btnRepeat.innerHTML =
+                '<i class="fa-light fa-repeat-1 icon-sm"></i>';
+            btnRepeat.classList.add('active'); // Colored (Repeat One)
+        }
+    }
+
+    // Toggle Repeat State on click
+    if (btnRepeat) {
+        btnRepeat.addEventListener('click', () => {
+            appSettings.repeatState = (appSettings.repeatState + 1) % 3; // Cycles 0 -> 1 -> 2 -> 0
+            saveSettings();
+            updateRepeatUI();
+        });
+    }
+
+    // Initialize UI on load
+    updateRepeatUI();
+
+    // Play Next Track
+    function playNext(isAutoPlay = false) {
+        if (!currentAlbumData) return;
+
+        // If the song ended naturally AND Repeat One is on, just replay it
+        if (isAutoPlay && appSettings.repeatState === 2) {
+            audioPlayer.currentTime = 0;
+            audioPlayer.play();
+            return;
+        }
+
+        currentTrackIndex++;
+
+        // Did we reach the end of the album?
+        if (currentTrackIndex >= currentAlbumData.tracks.length) {
+            // If No Repeat is on and the song ended naturally, stop playing.
+            if (isAutoPlay && appSettings.repeatState === 0) {
+                currentTrackIndex = 0; // Reset to first track
+                loadTrackIntoPlayer(
+                    currentAlbumData.tracks[currentTrackIndex],
+                    currentAlbumData,
+                );
+                isPlaying = false;
+                if (mainPlayPauseBtn)
+                    mainPlayPauseBtn.innerHTML =
+                        '<i class="fa-solid fa-play"></i>';
+                return;
+            }
+            // Otherwise (Repeat All is on, or user manually clicked Next), loop back to start
+            else {
+                currentTrackIndex = 0;
+            }
+        }
+
+        loadTrackIntoPlayer(
+            currentAlbumData.tracks[currentTrackIndex],
+            currentAlbumData,
+        );
+        audioPlayer.play();
+        isPlaying = true;
         if (mainPlayPauseBtn)
-            mainPlayPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
-        if (playbackFill) playbackFill.style.width = '0%';
-        if (currentTimeLabel) currentTimeLabel.textContent = '0:00';
+            mainPlayPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+    }
+
+    function playPrev() {
+        if (!currentAlbumData) return;
+
+        // Spotify UX trick: If playing for >3 seconds, restart the song instead of skipping back!
+        if (audioPlayer.currentTime > 3) {
+            audioPlayer.currentTime = 0;
+            return;
+        }
+
+        currentTrackIndex--;
+        if (currentTrackIndex < 0) {
+            currentTrackIndex = currentAlbumData.tracks.length - 1;
+        }
+
+        loadTrackIntoPlayer(
+            currentAlbumData.tracks[currentTrackIndex],
+            currentAlbumData,
+        );
+        audioPlayer.play();
+        isPlaying = true;
+        if (mainPlayPauseBtn)
+            mainPlayPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+    }
+
+    if (btnNext) btnNext.addEventListener('click', () => playNext(false));
+    if (btnPrev) btnPrev.addEventListener('click', playPrev);
+
+    // AUTO-PLAY: When a song finishes, trigger playNext (true = was auto-triggered)
+    audioPlayer.addEventListener('ended', () => {
+        playNext(true);
     });
 
     function handlePlaybackDrag(e) {
@@ -374,6 +479,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function loadTrackIntoPlayer(track, album) {
         if (!npTitle || !npArtists || !npArtwork) return;
+
+        // NEW: Remember the current album and track index!
+        currentAlbumData = album;
+        currentTrackIndex = album.tracks.findIndex((t) => t.id === track.id);
 
         npTitle.textContent = track.title;
         npArtwork.style.background = album.artwork;
