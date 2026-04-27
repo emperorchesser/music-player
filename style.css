@@ -442,9 +442,16 @@ body.light-mode .lyrics-section {
     transition: 0.2s all;
 }
 
-.btn-play-pause i {
-    font-size: 14px;
-    margin-left: 2px;
+/* Centers the triangle perfectly */
+.btn-play-pause .fa-play { 
+    font-size: 14px; 
+    margin-left: 1px; 
+}
+
+/* Keeps the pause bars perfectly centered */
+.btn-play-pause .fa-pause { 
+    font-size: 14px; 
+    margin-left: 0; 
 }
 
 .btn-play-pause:hover {
