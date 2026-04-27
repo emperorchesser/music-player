@@ -6,13 +6,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const settingsModal = document.getElementById('settings-modal');
     const closeSettingsBtn = document.getElementById('close-settings-btn');
 
-    // Settings Inputs
     const themeToggle = document.getElementById('theme-toggle');
     const crossfadeSlider = document.getElementById('crossfade-slider');
     const crossfadeVal = document.getElementById('crossfade-val');
     const explicitToggle = document.getElementById('explicit-toggle');
 
-    // Custom Dropdown Elements
     const qualityDropdown = document.getElementById('quality-dropdown');
     const qualityHeader = document.getElementById('quality-header');
     const qualityOptions = document.querySelectorAll('#quality-options li');
@@ -23,18 +21,18 @@ document.addEventListener('DOMContentLoaded', () => {
     /* =========================================
        SETTINGS & LOCAL STORAGE
     ========================================= */
-    // 1. Added "lastPlayedSongId" to our defaults!
+    // 1. Add "isLyricsHidden" to defaults!
     const defaultSettings = {
         lightMode: false,
         audioQuality: 'high',
         crossfade: 0,
         allowExplicit: true,
         lastPlayedSongId: null,
+        lastPlayedTime: 0,
+        isLyricsHidden: false, // NEW
     };
-
     let appSettings = { ...defaultSettings };
 
-    // 2. Load from Local Storage safely
     const savedSettings = localStorage.getItem('vibez_settings');
     if (savedSettings) {
         try {
@@ -52,7 +50,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 3. Apply settings to UI
     function applySettings() {
         if (themeToggle) themeToggle.checked = appSettings.lightMode;
         if (appSettings.lightMode) document.body.classList.add('light-mode');
@@ -75,12 +72,31 @@ document.addEventListener('DOMContentLoaded', () => {
             crossfadeVal.textContent = appSettings.crossfade + 's';
         }
         if (explicitToggle) explicitToggle.checked = appSettings.allowExplicit;
+
+        const lyricsPanel = document.getElementById('lyrics-panel');
+        const lyricsBtn = document.getElementById('btn-lyrics-toggle');
+        if (lyricsPanel && lyricsBtn) {
+            if (appSettings.isLyricsHidden) {
+                lyricsPanel.classList.add('hidden');
+                lyricsBtn.classList.remove('active');
+            } else {
+                lyricsPanel.classList.remove('hidden');
+                lyricsBtn.classList.add('active');
+            }
+        }
     }
 
-    // 4. Save Settings
     function saveSettings() {
         localStorage.setItem('vibez_settings', JSON.stringify(appSettings));
     }
+
+    // NEW: Save the exact timestamp right before the user closes/refreshes the tab!
+    window.addEventListener('beforeunload', () => {
+        if (audioPlayer && audioPlayer.currentTime > 0) {
+            appSettings.lastPlayedTime = audioPlayer.currentTime;
+            saveSettings();
+        }
+    });
 
     /* =========================================
        AUDIO ENGINE LOGIC (PLAYBACK & PROGRESS)
@@ -94,10 +110,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const playbackFill = document.getElementById('playback-fill');
 
     let isPlaying = false;
-    let isDraggingPlayback = false; // Tracks if user is scrubbing
-    let scrubTime = 0; // Temporarily holds the time while dragging
+    let isDraggingPlayback = false;
+    let scrubTime = 0;
+    let isBootingUp = true; // Tracks if this is the initial page load
 
-    // Time Formatter helper
     function formatTime(seconds) {
         if (isNaN(seconds)) return '0:00';
         const min = Math.floor(seconds / 60);
@@ -105,7 +121,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${min}:${sec < 10 ? '0' : ''}${sec}`;
     }
 
-    // Toggle Play/Pause
     function togglePlay() {
         if (!audioPlayer.src) return;
         if (isPlaying) {
@@ -125,21 +140,23 @@ document.addEventListener('DOMContentLoaded', () => {
     if (mainPlayPauseBtn)
         mainPlayPauseBtn.addEventListener('click', togglePlay);
 
-    // Auto-update Progress Bar as song plays
     audioPlayer.addEventListener('timeupdate', () => {
-        // Stop updating visually if the user is currently dragging the bar!
         if (isDraggingPlayback) return;
-
         const percent = (audioPlayer.currentTime / audioPlayer.duration) * 100;
         if (playbackFill) playbackFill.style.width = `${percent}%`;
         if (currentTimeLabel)
             currentTimeLabel.textContent = formatTime(audioPlayer.currentTime);
     });
 
-    // Load Metadata (Total Time)
     audioPlayer.addEventListener('loadedmetadata', () => {
         if (totalTimeLabel)
             totalTimeLabel.textContent = formatTime(audioPlayer.duration);
+
+        // NEW: If the app just booted up, jump to the saved timestamp!
+        if (isBootingUp && appSettings.lastPlayedTime > 0) {
+            audioPlayer.currentTime = appSettings.lastPlayedTime;
+            isBootingUp = false; // Turn off boot sequence so it doesn't jump around later
+        }
     });
 
     audioPlayer.addEventListener('ended', () => {
@@ -150,17 +167,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentTimeLabel) currentTimeLabel.textContent = '0:00';
     });
 
-    // --- NEW: SCRUBBING / SEEKING LOGIC ---
     function handlePlaybackDrag(e) {
         if (!playbackContainer || !audioPlayer.duration) return;
         const rect = playbackContainer.getBoundingClientRect();
         let percentage = (e.clientX - rect.left) / rect.width;
-        percentage = Math.max(0, Math.min(1, percentage)); // Clamp between 0 and 1
+        percentage = Math.max(0, Math.min(1, percentage));
 
-        // Update visual UI instantly
         if (playbackFill) playbackFill.style.width = `${percentage * 100}%`;
 
-        // Calculate the target time, but don't apply it to the audio player yet (prevents stuttering)
         scrubTime = percentage * audioPlayer.duration;
         if (currentTimeLabel)
             currentTimeLabel.textContent = formatTime(scrubTime);
@@ -175,58 +189,129 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /* =========================================
-       JSON DATABASE & DATA BINDING
+       JSON DATABASE & DATA BINDING (ALBUMS)
     ========================================= */
     const recentlyAddedGrid = document.getElementById('recently-added-grid');
+    const recentlyPlayedGrid = document.getElementById('recently-played-grid');
+    const libraryGrid = document.getElementById('library-grid');
+
     const npTitle = document.getElementById('now-playing-title');
     const npArtists = document.getElementById('now-playing-artists');
     const npArtwork = document.getElementById('now-playing-artwork');
 
+    // NEW: Track the currently playing color so we can revert back to it!
+    let activeAlbumColor = '#222222';
+
     function loadMusicDatabase() {
         try {
             const data = musicData;
-            renderRecentlyAdded(data.songs);
+            renderRecentlyAdded(data.albums);
+            renderRecentlyPlayed(data.albums);
 
-            if (data.songs.length > 0) {
-                let songToLoad = data.songs[0]; // Default to first song
+            // NEW: Generate the full library!
+            renderLibrary(data.albums);
 
-                // NEW: Check if we have a saved song in local storage!
+            if (data.albums.length > 0) {
+                let albumToLoad = data.albums[0];
+                let trackToLoad = albumToLoad.tracks[0];
+
                 if (appSettings.lastPlayedSongId) {
-                    const savedSong = data.songs.find(
-                        (s) => s.id === appSettings.lastPlayedSongId,
-                    );
-                    if (savedSong) songToLoad = savedSong;
+                    for (const album of data.albums) {
+                        const foundTrack = album.tracks.find(
+                            (t) => t.id === appSettings.lastPlayedSongId,
+                        );
+                        if (foundTrack) {
+                            albumToLoad = album;
+                            trackToLoad = foundTrack;
+                            break;
+                        }
+                    }
                 }
-
-                loadTrackIntoPlayer(songToLoad);
+                loadTrackIntoPlayer(trackToLoad, albumToLoad);
             }
         } catch (error) {
             console.error('Failed to load database:', error);
         }
     }
 
-    function renderRecentlyAdded(songs) {
+    // NEW: Render the Wide "Recently Played" Cards
+    function renderRecentlyPlayed(albums) {
+        if (!recentlyPlayedGrid) return;
+        recentlyPlayedGrid.innerHTML = '';
+
+        // Show up to 6 albums
+        albums.slice(0, 6).forEach((album) => {
+            const card = document.createElement('div');
+            card.className = 'recent-card';
+            card.innerHTML = `
+                <div class="recent-art" style="background: ${album.artwork}"></div>
+                <div class="recent-info">${album.title}</div>
+            `;
+
+            // Hover Animations!
+            card.addEventListener('mouseenter', () => {
+                document.documentElement.style.setProperty(
+                    '--album-color',
+                    album.primaryColor,
+                );
+            });
+            card.addEventListener('mouseleave', () => {
+                document.documentElement.style.setProperty(
+                    '--album-color',
+                    activeAlbumColor,
+                );
+            });
+
+            card.addEventListener('click', () => {
+                isBootingUp = false;
+                loadTrackIntoPlayer(album.tracks[0], album);
+                audioPlayer.play();
+                isPlaying = true;
+                if (mainPlayPauseBtn)
+                    mainPlayPauseBtn.innerHTML =
+                        '<i class="fa-solid fa-pause"></i>';
+            });
+
+            recentlyPlayedGrid.appendChild(card);
+        });
+    }
+
+    // UPDATE: Add hover animations to Recently Added too!
+    function renderRecentlyAdded(albums) {
         if (!recentlyAddedGrid) return;
         recentlyAddedGrid.innerHTML = '';
 
-        const limitedSongs = songs.slice(0, 6);
-
-        limitedSongs.forEach((song) => {
-            let artistString = song.artists.join(', ');
+        albums.slice(0, 6).forEach((album) => {
+            let artistString = album.artist; // Fallback to album artist
             const card = document.createElement('div');
             card.className = 'album-card';
 
             card.innerHTML = `
                 <div class="album-art-container">
-                    <div class="album-art" style="background: ${song.artwork}"></div>
+                    <div class="album-art" style="background: ${album.artwork}"></div>
                     <button class="card-play-btn"><i class="fa-solid fa-play"></i></button>
                 </div>
-                <h4>${song.title} ${song.explicit ? '<span style="background:var(--text-secondary); color:var(--bg-main); font-size:10px; padding:2px 4px; border-radius:3px; vertical-align:middle; margin-left:4px;">E</span>' : ''}</h4>
-                <p>${song.albumType} • ${artistString}</p>
+                <h4>${album.title}</h4>
+                <p>${album.type} • ${artistString}</p>
             `;
 
+            // Hover Animations!
+            card.addEventListener('mouseenter', () => {
+                document.documentElement.style.setProperty(
+                    '--album-color',
+                    album.primaryColor,
+                );
+            });
+            card.addEventListener('mouseleave', () => {
+                document.documentElement.style.setProperty(
+                    '--album-color',
+                    activeAlbumColor,
+                );
+            });
+
             card.addEventListener('click', () => {
-                loadTrackIntoPlayer(song);
+                isBootingUp = false;
+                loadTrackIntoPlayer(album.tracks[0], album);
                 audioPlayer.play();
                 isPlaying = true;
                 if (mainPlayPauseBtn)
@@ -238,17 +323,73 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function loadTrackIntoPlayer(song) {
+    // NEW: Render the entire Library grid
+    function renderLibrary(albums) {
+        const libraryGrid = document.getElementById('library-grid');
+        if (!libraryGrid) return;
+        libraryGrid.innerHTML = '';
+
+        // Notice we don't use .slice(0, 6) here! We want ALL albums.
+        albums.forEach((album) => {
+            const card = document.createElement('div');
+            card.className = 'album-card';
+
+            card.innerHTML = `
+                <div class="album-art-container">
+                    <div class="album-art" style="background: ${album.artwork}"></div>
+                    <button class="card-play-btn"><i class="fa-solid fa-play"></i></button>
+                </div>
+                <h4>${album.title}</h4>
+                <p>${album.type} • ${album.artist}</p>
+            `;
+
+            // Hover Animations
+            card.addEventListener('mouseenter', () => {
+                document.documentElement.style.setProperty(
+                    '--album-color',
+                    album.primaryColor,
+                );
+            });
+            card.addEventListener('mouseleave', () => {
+                document.documentElement.style.setProperty(
+                    '--album-color',
+                    activeAlbumColor,
+                );
+            });
+
+            // Click to Play
+            card.addEventListener('click', () => {
+                isBootingUp = false;
+                loadTrackIntoPlayer(album.tracks[0], album);
+                audioPlayer.play();
+                isPlaying = true;
+                if (mainPlayPauseBtn)
+                    mainPlayPauseBtn.innerHTML =
+                        '<i class="fa-solid fa-pause"></i>';
+            });
+
+            libraryGrid.appendChild(card);
+        });
+    }
+
+    function loadTrackIntoPlayer(track, album) {
         if (!npTitle || !npArtists || !npArtwork) return;
 
-        npTitle.textContent = song.title;
-        npArtwork.style.background = song.artwork;
+        npTitle.textContent = track.title;
+        npArtwork.style.background = album.artwork;
 
-        let mainArtistsHTML = song.artists
+        // Update the active color tracker and apply it!
+        activeAlbumColor = album.primaryColor;
+        document.documentElement.style.setProperty(
+            '--album-color',
+            activeAlbumColor,
+        );
+
+        let mainArtistsHTML = track.artists
             .map((a) => `<a href="#" class="artist-link">${a}</a>`)
             .join(', ');
-        if (song.featuredArtists && song.featuredArtists.length > 0) {
-            let featArtistsHTML = song.featuredArtists
+        if (track.featuredArtists && track.featuredArtists.length > 0) {
+            let featArtistsHTML = track.featuredArtists
                 .map((a) => `<a href="#" class="artist-link">${a}</a>`)
                 .join(', ');
             npArtists.innerHTML = `${mainArtistsHTML} ft. ${featArtistsHTML}`;
@@ -256,12 +397,11 @@ document.addEventListener('DOMContentLoaded', () => {
             npArtists.innerHTML = mainArtistsHTML;
         }
 
-        if (song.audioFile) {
-            audioPlayer.src = song.audioFile;
+        if (track.audioFile) {
+            audioPlayer.src = track.audioFile;
         }
 
-        // NEW: Save the last played song ID and update local storage!
-        appSettings.lastPlayedSongId = song.id;
+        appSettings.lastPlayedSongId = track.id;
         saveSettings();
     }
 
@@ -280,10 +420,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateVolumeUI(percentage) {
         percentage = Math.max(0, Math.min(1, percentage));
         currentVolume = percentage;
-
         if (volumeFill) volumeFill.style.width = percentage * 100 + '%';
-
-        // NEW: Actually change the volume of the Audio Engine!
         if (audioPlayer) audioPlayer.volume = percentage;
 
         if (muteIcon) {
@@ -322,30 +459,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /* =========================================
-       GLOBAL MOUSE EVENTS (Drag Handlers)
+       GLOBAL MOUSE EVENTS
     ========================================= */
     window.addEventListener('mousemove', (e) => {
         if (isDraggingVolume) setVolumeFromEvent(e);
-
-        if (isDraggingPlayback) {
-            handlePlaybackDrag(e); // Updates UI dynamically while dragging
-        }
+        if (isDraggingPlayback) handlePlaybackDrag(e);
     });
 
     window.addEventListener('mouseup', () => {
-        // Stop Volume Drag
         if (isDraggingVolume) {
             isDraggingVolume = false;
             document.body.classList.remove('dragging');
         }
-
-        // Stop Playback Drag
         if (isDraggingPlayback) {
             isDraggingPlayback = false;
             document.body.classList.remove('dragging');
 
-            // NEW: Apply the new scrubbed time to the actual audio file ONLY when user lets go!
+            // Only update the actual audio track if the user scrubbed it
             audioPlayer.currentTime = scrubTime;
+
+            // Update the setting so it saves correctly
+            appSettings.lastPlayedTime = scrubTime;
         }
     });
 
@@ -412,17 +546,44 @@ document.addEventListener('DOMContentLoaded', () => {
        LYRICS TOGGLE LOGIC
     ========================================= */
     const lyricsBtn = document.getElementById('btn-lyrics-toggle');
-    const lyricsPanel = document.getElementById('lyrics-panel');
-
-    if (lyricsBtn && lyricsPanel) {
+    if (lyricsBtn) {
         lyricsBtn.addEventListener('click', () => {
-            lyricsPanel.classList.toggle('hidden');
-            lyricsBtn.classList.toggle('active');
+            appSettings.isLyricsHidden = !appSettings.isLyricsHidden;
+            applySettings();
+            saveSettings();
         });
     }
 
     // FIRE IT UP
     applySettings();
-    updateVolumeUI(0.7); // Set default volume on load
-    loadMusicDatabase(); // Boots up the app and loads your last played track
+    updateVolumeUI(0.7);
+    loadMusicDatabase();
+
+    /* =========================================
+       NAVIGATION LOGIC (With Animations & Fixes!)
+    ========================================= */
+    const navItems = document.querySelectorAll('.nav-item');
+    const views = document.querySelectorAll('.view-section');
+
+    if (navItems.length > 0) {
+        navItems.forEach((item) => {
+            // Changed from (e) => to function() so we can use 'this' safely
+            item.addEventListener('click', function () {
+                // 'this' grabs the whole .nav-item text, even if you click the icon!
+                const label = this.textContent.trim();
+
+                // Remove 'active' class from ALL views instantly
+                views.forEach((v) => v.classList.remove('active'));
+
+                // Add 'active' class to the target view
+                if (label === 'Home') {
+                    const homeView = document.getElementById('view-home');
+                    if (homeView) homeView.classList.add('active');
+                } else if (label === 'Your Library') {
+                    const libView = document.getElementById('view-library');
+                    if (libView) libView.classList.add('active');
+                }
+            });
+        });
+    }
 }); // End of DOMContentLoaded

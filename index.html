@@ -99,7 +99,7 @@
 
                 <!-- MAIN CONTENT -->
                 <main class="main-content">
-                    <!-- Top Bar with Settings Button -->
+                    <!-- Top Bar -->
                     <header class="top-bar">
                         <button class="btn-settings" id="settings-btn"
                             title="Settings">
@@ -107,75 +107,33 @@
                         </button>
                     </header>
 
-                    <!-- Section 1: Realistic Library View (No Algorithms) -->
-                    <section class="home-section">
-                        <h2 class="section-title">Recently Played</h2>
-                        <div class="recent-grid">
-                            <div class="recent-card">
-                                <div class="recent-art"
-                                    style="background: linear-gradient(135deg, #450af5, #c4a1ff); display:flex; align-items:center; justify-content:center; color:white;">
-                                    <i class="fa-solid fa-heart"></i>
-                                </div>
-                                <div class="recent-info">Liked Songs</div>
+                    <!-- HOME VIEW -->
+                    <div id="view-home" class="view-section active">
+                        <!-- Section 1: Recently Played -->
+                        <section class="home-section">
+                            <h2 class="section-title">Recently Played</h2>
+                            <div class="recent-grid" id="recently-played-grid">
+                                <!-- JS WILL INJECT CARDS HERE -->
                             </div>
-                            <div class="recent-card">
-                                <div class="recent-art"></div>
-                                <div class="recent-info">Midnight Vibes
-                                    EP</div>
-                            </div>
-                            <div class="recent-card">
-                                <div class="recent-art"></div>
-                                <div class="recent-info">My Playlist #1</div>
-                            </div>
-                            <div class="recent-card">
-                                <div class="recent-art"></div>
-                                <div class="recent-info">The Synthtones</div>
-                            </div>
-                            <div class="recent-card">
-                                <div class="recent-art"
-                                    style="background: #2a2a2a; display:flex; align-items:center; justify-content:center; color:#888;">
-                                    <i class="fa-solid fa-folder-music"></i>
-                                </div>
-                                <div class="recent-info">Local Files</div>
-                            </div>
-                            <div class="recent-card">
-                                <div class="recent-art"></div>
-                                <div class="recent-info">Summer Roadtrip</div>
-                            </div>
-                        </div>
-                    </section>
+                        </section>
 
-                    <!-- Section 2: Recently Added (Directly from JSON Database) -->
-                    <section class="home-section" style="margin-top: 40px;">
-                        <h2 class="section-title">Recently Added</h2>
-                        <div class="album-grid" id="recently-added-grid">
-                            <!-- <div class="album-card">
-                                <div class="album-art"></div>
-                                <h4>Neon Horizons</h4>
-                                <p>Single • DJ Chill</p>
+                        <!-- Section 2: Recently Added -->
+                        <section class="home-section"
+                            style="margin-top: 40px;">
+                            <h2 class="section-title">Recently Added</h2>
+                            <div class="album-grid" id="recently-added-grid">
+                                <!-- JS WILL INJECT CARDS HERE -->
                             </div>
-                            <div class="album-card">
-                                <div class="album-art"></div>
-                                <h4>Summer Acoustic</h4>
-                                <p>Compilation</p>
-                            </div>
-                            <div class="album-card">
-                                <div class="album-art"></div>
-                                <h4>Deep Space</h4>
-                                <p>Album • The Synthtones</p>
-                            </div>
-                            <div class="album-card">
-                                <div class="album-art"></div>
-                                <h4>Retro Wave</h4>
-                                <p>Compilation</p>
-                            </div>
-                            <div class="album-card">
-                                <div class="album-art"></div>
-                                <h4>Midnight City</h4>
-                                <p>EP • Various Artists</p>
-                            </div> -->
+                        </section>
+                    </div>
+
+                    <!-- MY LIBRARY VIEW (Hidden by default) -->
+                    <div id="view-library" class="view-section">
+                        <h2 class="section-title">Your Library</h2>
+                        <div class="album-grid" id="library-grid">
+                            <!-- JS WILL INJECT ALL SAVED ALBUMS HERE -->
                         </div>
-                    </section>
+                    </div>
                 </main>
 
                 <!-- LYRICS SECTION (Added ID) -->
@@ -342,6 +300,6 @@
         <audio id="main-audio-player"></audio>
 
         <script src="database.js"></script>
-        <script src="script.js?v=2"></script>
+        <script src="script.js"></script>
     </body>
 </html>

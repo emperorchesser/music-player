@@ -8,7 +8,7 @@
     --text-primary: #ffffff;
     --text-secondary: #b3b3b3;
 
-    --primary-color: #1e2a4a;
+    --primary-color: #222222;
 
     /* NEW TWO-TIER ACCENT SYSTEM FOR ACCESSIBILITY */
     --accent-bg: #3f0bff;
@@ -153,12 +153,47 @@ body.light-mode ::-webkit-scrollbar-thumb:hover {
     color: var(--text-primary);
 }
 
-/* Main Content */
+/* --- FIXED MAIN CONTENT BACKGROUND --- */
+/* We now use --album-color instead so Light Mode doesn't block it! */
 .main-content {
     flex: 1;
-    background: linear-gradient(to bottom, var(--primary-color) 0%, var(--bg-main) 300px);
+    background-color: var(--album-color, var(--primary-color));
+    background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, var(--bg-main) 300px);
     padding: 24px;
     overflow-y: auto;
+    transition: background-color 0.8s ease;
+}
+
+/* --- LIGHT MODE BACKGROUND FIX --- */
+/* Washes out the dark album colors with 80% white so the black text remains readable! */
+body.light-mode .main-content {
+    background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.75) 0%, var(--bg-main) 300px);
+}
+
+/* --- NEW: VIEW TRANSITION ANIMATIONS --- */
+.view-section {
+    display: none;
+    /* Hidden by default */
+}
+
+/* When Javascript adds the 'active' class, it displays and animates! */
+.view-section.active {
+    display: block;
+    animation: fadeViewIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes fadeViewIn {
+    0% {
+        opacity: 0;
+        transform: translateY(15px);
+        /* Starts slightly lower */
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+        /* Slides up perfectly into place */
+    }
 }
 
 /* --- GRIDS --- */
@@ -1001,7 +1036,8 @@ body.light-mode .settings-header {
 
 /* --- SETTINGS MODAL HEADER FIX --- */
 .btn-close:hover {
-    color: var(--accent-text); /* Matches the slider hover color! */
+    color: var(--accent-text);
+    /* Matches the slider hover color! */
     transform: scale(1.1);
 }
 
@@ -1056,10 +1092,13 @@ body.light-mode .settings-header {
 
 /* Light Mode Play Button Border */
 body.light-mode .card-play-btn {
-    border: 2px solid rgba(255, 255, 255); /* Visible subtle border when not hovered */
+    border: 2px solid rgba(255, 255, 255);
+    /* Visible subtle border when not hovered */
 }
+
 body.light-mode .card-play-btn:hover {
-    border-color: rgba(150, 150, 150); /* Darkens slightly on hover */
+    border-color: rgba(150, 150, 150);
+    /* Darkens slightly on hover */
 }
 
 /* When hovering over the whole card, the button slides up and fades in! */
