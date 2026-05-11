@@ -443,15 +443,15 @@ body.light-mode .lyrics-section {
 }
 
 /* Centers the triangle perfectly */
-.btn-play-pause .fa-play { 
-    font-size: 14px; 
-    margin-left: 1px; 
+.btn-play-pause .fa-play {
+    font-size: 14px;
+    margin-left: 1px;
 }
 
 /* Keeps the pause bars perfectly centered */
-.btn-play-pause .fa-pause { 
-    font-size: 14px; 
-    margin-left: 0; 
+.btn-play-pause .fa-pause {
+    font-size: 14px;
+    margin-left: 0;
 }
 
 .btn-play-pause:hover {
@@ -1118,4 +1118,103 @@ body.light-mode .card-play-btn:hover {
     transform: scale(1.1) !important;
     background-color: var(--accent-text);
     /* Brighter violet on hover */
+}
+
+/* --- ALBUM PAGE VIEW --- */
+.album-page-header {
+    display: flex;
+    align-items: flex-end;
+    gap: 24px;
+    margin-bottom: 40px;
+}
+
+.album-page-art {
+    width: 232px;
+    height: 232px;
+    background-color: #333;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+    border-radius: 4px;
+}
+
+.album-page-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.album-page-type {
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.album-page-title {
+    font-size: 4rem;
+    font-weight: 800;
+    margin: 8px 0 15px 0;
+    line-height: 1;
+}
+
+.album-page-meta {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+.btn-play-large {
+    background-color: var(--accent-bg);
+    color: white;
+    border: none;
+    padding: 12px 32px;
+    border-radius: 30px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s transform, 0.2s background-color;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.btn-play-large:hover {
+    transform: scale(1.05);
+    background-color: var(--accent-text);
+}
+
+/* Tracklist Rows */
+.tracklist-row {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    color: var(--text-secondary);
+}
+
+.tracklist-row:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+body.light-mode .tracklist-row:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.track-num {
+    width: 30px;
+    text-align: right;
+    margin-right: 16px;
+}
+
+.track-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.track-name {
+    color: var(--text-primary);
+    font-weight: bold;
+    font-size: 15px;
 }

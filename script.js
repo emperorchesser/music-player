@@ -21,7 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
     /* =========================================
        SETTINGS & LOCAL STORAGE
     ========================================= */
-    // 1. Add "isLyricsHidden" to defaults!
     const defaultSettings = {
         lightMode: false,
         audioQuality: 'high',
@@ -30,8 +29,9 @@ document.addEventListener('DOMContentLoaded', () => {
         lastPlayedSongId: null,
         lastPlayedTime: 0,
         isLyricsHidden: false,
-        repeatState: 0, // NEW: 0=Off, 1=RepeatAll, 2=RepeatOne
+        repeatState: 0,
     };
+
     let appSettings = { ...defaultSettings };
 
     const savedSettings = localStorage.getItem('vibez_settings');
@@ -91,7 +91,6 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('vibez_settings', JSON.stringify(appSettings));
     }
 
-    // NEW: Save the exact timestamp right before the user closes/refreshes the tab!
     window.addEventListener('beforeunload', () => {
         if (audioPlayer && audioPlayer.currentTime > 0) {
             appSettings.lastPlayedTime = audioPlayer.currentTime;
@@ -111,11 +110,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const playbackFill = document.getElementById('playback-fill');
 
     let isPlaying = false;
-    let currentAlbumData = null;
-    let currentTrackIndex = 0;
     let isDraggingPlayback = false;
     let scrubTime = 0;
-    let isBootingUp = true; // Tracks if this is the initial page load
+    let isBootingUp = true;
+    let crossfadeInterval = null; // NEW: Global crossfade timer tracker
+
+    let currentAlbumData = null;
+    let currentTrackIndex = 0;
 
     function formatTime(seconds) {
         if (isNaN(seconds)) return '0:00';
@@ -145,131 +146,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
     audioPlayer.addEventListener('timeupdate', () => {
         if (isDraggingPlayback) return;
+
         const percent = (audioPlayer.currentTime / audioPlayer.duration) * 100;
         if (playbackFill) playbackFill.style.width = `${percent}%`;
         if (currentTimeLabel)
             currentTimeLabel.textContent = formatTime(audioPlayer.currentTime);
+
+        // NEW: FADE-OUT LOGIC
+        if (appSettings.crossfade > 0 && audioPlayer.duration) {
+            const timeLeft = audioPlayer.duration - audioPlayer.currentTime;
+
+            // If we are in the final X seconds of the song...
+            if (timeLeft <= appSettings.crossfade) {
+                // Smoothly calculate the volume going down to 0
+                let fadeOutVol =
+                    currentVolume * (timeLeft / appSettings.crossfade);
+                audioPlayer.volume = Math.max(
+                    0,
+                    Math.min(currentVolume, fadeOutVol),
+                );
+            }
+            // Make sure the volume stays normal in the middle of the song
+            // (Only triggers if the fade-in interval is completely finished)
+            else if (!crossfadeInterval) {
+                audioPlayer.volume = currentVolume;
+            }
+        }
     });
 
     audioPlayer.addEventListener('loadedmetadata', () => {
         if (totalTimeLabel)
             totalTimeLabel.textContent = formatTime(audioPlayer.duration);
-
-        // NEW: If the app just booted up, jump to the saved timestamp!
         if (isBootingUp && appSettings.lastPlayedTime > 0) {
             audioPlayer.currentTime = appSettings.lastPlayedTime;
-            isBootingUp = false; // Turn off boot sequence so it doesn't jump around later
+            isBootingUp = false;
         }
-    });
-
-    // --- SKIP, PREVIOUS & REPEAT LOGIC ---
-    const btnNext = document.getElementById('btn-next');
-    const btnPrev = document.getElementById('btn-prev');
-    const btnRepeat = document.getElementById('btn-repeat');
-
-    // Update the Repeat Button UI
-    function updateRepeatUI() {
-        if (!btnRepeat) return;
-        if (appSettings.repeatState === 0) {
-            btnRepeat.innerHTML = '<i class="fa-light fa-repeat icon-sm"></i>';
-            btnRepeat.classList.remove('active'); // Gray
-        } else if (appSettings.repeatState === 1) {
-            btnRepeat.innerHTML = '<i class="fa-light fa-repeat icon-sm"></i>';
-            btnRepeat.classList.add('active'); // Colored (Repeat All)
-        } else {
-            // Font Awesome Pro has fa-repeat-1 for "Repeat One"
-            btnRepeat.innerHTML =
-                '<i class="fa-light fa-repeat-1 icon-sm"></i>';
-            btnRepeat.classList.add('active'); // Colored (Repeat One)
-        }
-    }
-
-    // Toggle Repeat State on click
-    if (btnRepeat) {
-        btnRepeat.addEventListener('click', () => {
-            appSettings.repeatState = (appSettings.repeatState + 1) % 3; // Cycles 0 -> 1 -> 2 -> 0
-            saveSettings();
-            updateRepeatUI();
-        });
-    }
-
-    // Initialize UI on load
-    updateRepeatUI();
-
-    // Play Next Track
-    function playNext(isAutoPlay = false) {
-        if (!currentAlbumData) return;
-
-        // If the song ended naturally AND Repeat One is on, just replay it
-        if (isAutoPlay && appSettings.repeatState === 2) {
-            audioPlayer.currentTime = 0;
-            audioPlayer.play();
-            return;
-        }
-
-        currentTrackIndex++;
-
-        // Did we reach the end of the album?
-        if (currentTrackIndex >= currentAlbumData.tracks.length) {
-            // If No Repeat is on and the song ended naturally, stop playing.
-            if (isAutoPlay && appSettings.repeatState === 0) {
-                currentTrackIndex = 0; // Reset to first track
-                loadTrackIntoPlayer(
-                    currentAlbumData.tracks[currentTrackIndex],
-                    currentAlbumData,
-                );
-                isPlaying = false;
-                if (mainPlayPauseBtn)
-                    mainPlayPauseBtn.innerHTML =
-                        '<i class="fa-solid fa-play"></i>';
-                return;
-            }
-            // Otherwise (Repeat All is on, or user manually clicked Next), loop back to start
-            else {
-                currentTrackIndex = 0;
-            }
-        }
-
-        loadTrackIntoPlayer(
-            currentAlbumData.tracks[currentTrackIndex],
-            currentAlbumData,
-        );
-        audioPlayer.play();
-        isPlaying = true;
-        if (mainPlayPauseBtn)
-            mainPlayPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
-    }
-
-    function playPrev() {
-        if (!currentAlbumData) return;
-
-        // Spotify UX trick: If playing for >3 seconds, restart the song instead of skipping back!
-        if (audioPlayer.currentTime > 3) {
-            audioPlayer.currentTime = 0;
-            return;
-        }
-
-        currentTrackIndex--;
-        if (currentTrackIndex < 0) {
-            currentTrackIndex = currentAlbumData.tracks.length - 1;
-        }
-
-        loadTrackIntoPlayer(
-            currentAlbumData.tracks[currentTrackIndex],
-            currentAlbumData,
-        );
-        audioPlayer.play();
-        isPlaying = true;
-        if (mainPlayPauseBtn)
-            mainPlayPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
-    }
-
-    if (btnNext) btnNext.addEventListener('click', () => playNext(false));
-    if (btnPrev) btnPrev.addEventListener('click', playPrev);
-
-    // AUTO-PLAY: When a song finishes, trigger playNext (true = was auto-triggered)
-    audioPlayer.addEventListener('ended', () => {
-        playNext(true);
     });
 
     function handlePlaybackDrag(e) {
@@ -294,7 +205,127 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /* =========================================
-       JSON DATABASE & DATA BINDING (ALBUMS)
+       SKIP, PREVIOUS & REPEAT LOGIC
+    ========================================= */
+    const btnNext = document.getElementById('btn-next');
+    const btnPrev = document.getElementById('btn-prev');
+    const btnRepeat = document.getElementById('btn-repeat');
+
+    function updateRepeatUI() {
+        if (!btnRepeat) return;
+        if (appSettings.repeatState === 0) {
+            btnRepeat.innerHTML = '<i class="fa-light fa-repeat icon-sm"></i>';
+            btnRepeat.classList.remove('active');
+        } else if (appSettings.repeatState === 1) {
+            btnRepeat.innerHTML = '<i class="fa-light fa-repeat icon-sm"></i>';
+            btnRepeat.classList.add('active');
+        } else {
+            btnRepeat.innerHTML =
+                '<i class="fa-light fa-repeat-1 icon-sm"></i>';
+            btnRepeat.classList.add('active');
+        }
+    }
+
+    if (btnRepeat) {
+        btnRepeat.addEventListener('click', () => {
+            appSettings.repeatState = (appSettings.repeatState + 1) % 3;
+            saveSettings();
+            updateRepeatUI();
+        });
+    }
+
+    updateRepeatUI();
+
+    function playNext(isAutoPlay = false) {
+        if (!currentAlbumData) return;
+
+        if (isAutoPlay && appSettings.repeatState === 2) {
+            audioPlayer.currentTime = 0;
+            audioPlayer.play();
+            return;
+        }
+
+        let foundValidTrack = false;
+        let startIndex = currentTrackIndex;
+
+        // Skips explicit tracks if setting is disabled
+        while (!foundValidTrack) {
+            currentTrackIndex++;
+            if (currentTrackIndex >= currentAlbumData.tracks.length) {
+                if (isAutoPlay && appSettings.repeatState === 0) {
+                    currentTrackIndex = startIndex;
+                    loadTrackIntoPlayer(
+                        currentAlbumData.tracks[currentTrackIndex],
+                        currentAlbumData,
+                    );
+                    isPlaying = false;
+                    if (mainPlayPauseBtn)
+                        mainPlayPauseBtn.innerHTML =
+                            '<i class="fa-solid fa-play"></i>';
+                    return;
+                } else {
+                    currentTrackIndex = 0;
+                }
+            }
+
+            const nextTrack = currentAlbumData.tracks[currentTrackIndex];
+            if (appSettings.allowExplicit || !nextTrack.explicit) {
+                foundValidTrack = true;
+            }
+
+            if (currentTrackIndex === startIndex) break;
+        }
+
+        loadTrackIntoPlayer(
+            currentAlbumData.tracks[currentTrackIndex],
+            currentAlbumData,
+        );
+        audioPlayer.play();
+        isPlaying = true;
+        if (mainPlayPauseBtn)
+            mainPlayPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+    }
+
+    function playPrev() {
+        if (!currentAlbumData) return;
+
+        if (audioPlayer.currentTime > 3) {
+            audioPlayer.currentTime = 0;
+            return;
+        }
+
+        currentTrackIndex--;
+        if (currentTrackIndex < 0) {
+            currentTrackIndex = currentAlbumData.tracks.length - 1;
+        }
+
+        // Ensure the track we skip back to is allowed
+        const prevTrack = currentAlbumData.tracks[currentTrackIndex];
+        if (!appSettings.allowExplicit && prevTrack.explicit) {
+            // Recursively skip back again if this one is explicit
+            playPrev();
+            return;
+        }
+
+        loadTrackIntoPlayer(
+            currentAlbumData.tracks[currentTrackIndex],
+            currentAlbumData,
+        );
+        audioPlayer.play();
+        isPlaying = true;
+        if (mainPlayPauseBtn)
+            mainPlayPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+    }
+
+    if (btnNext) btnNext.addEventListener('click', () => playNext(false));
+    if (btnPrev) btnPrev.addEventListener('click', playPrev);
+
+    audioPlayer.addEventListener('ended', () => {
+        playNext(true);
+    });
+
+    /* =========================================
+       JSON DATABASE & DATA BINDING
     ========================================= */
     const recentlyAddedGrid = document.getElementById('recently-added-grid');
     const recentlyPlayedGrid = document.getElementById('recently-played-grid');
@@ -304,16 +335,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const npArtists = document.getElementById('now-playing-artists');
     const npArtwork = document.getElementById('now-playing-artwork');
 
-    // NEW: Track the currently playing color so we can revert back to it!
     let activeAlbumColor = '#222222';
+
+    // NEW HELPER: Finds the first non-explicit track in an album (if filter is active)
+    function playAlbum(album) {
+        let trackIndexToPlay = 0;
+
+        if (!appSettings.allowExplicit) {
+            trackIndexToPlay = album.tracks.findIndex((t) => !t.explicit);
+            if (trackIndexToPlay === -1) {
+                alert(
+                    'All tracks in this album contain explicit content, which is currently disabled in your settings.',
+                );
+                return;
+            }
+        }
+
+        isBootingUp = false;
+        currentAlbumData = album;
+        currentTrackIndex = trackIndexToPlay;
+
+        loadTrackIntoPlayer(album.tracks[trackIndexToPlay], album);
+        audioPlayer.play();
+        isPlaying = true;
+        if (mainPlayPauseBtn)
+            mainPlayPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+    }
 
     function loadMusicDatabase() {
         try {
             const data = musicData;
             renderRecentlyAdded(data.albums);
             renderRecentlyPlayed(data.albums);
-
-            // NEW: Generate the full library!
             renderLibrary(data.albums);
 
             if (data.albums.length > 0) {
@@ -328,6 +381,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (foundTrack) {
                             albumToLoad = album;
                             trackToLoad = foundTrack;
+                            currentAlbumData = album;
+                            currentTrackIndex =
+                                album.tracks.indexOf(foundTrack);
                             break;
                         }
                     }
@@ -339,12 +395,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // NEW: Render the Wide "Recently Played" Cards
     function renderRecentlyPlayed(albums) {
         if (!recentlyPlayedGrid) return;
         recentlyPlayedGrid.innerHTML = '';
 
-        // Show up to 6 albums
         albums.slice(0, 6).forEach((album) => {
             const card = document.createElement('div');
             card.className = 'recent-card';
@@ -353,92 +407,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="recent-info">${album.title}</div>
             `;
 
-            // Hover Animations!
-            card.addEventListener('mouseenter', () => {
+            card.addEventListener('mouseenter', () =>
                 document.documentElement.style.setProperty(
                     '--album-color',
                     album.primaryColor,
-                );
-            });
-            card.addEventListener('mouseleave', () => {
+                ),
+            );
+            card.addEventListener('mouseleave', () =>
                 document.documentElement.style.setProperty(
                     '--album-color',
                     activeAlbumColor,
-                );
-            });
+                ),
+            );
 
-            card.addEventListener('click', () => {
-                isBootingUp = false;
-                loadTrackIntoPlayer(album.tracks[0], album);
-                audioPlayer.play();
-                isPlaying = true;
-                if (mainPlayPauseBtn)
-                    mainPlayPauseBtn.innerHTML =
-                        '<i class="fa-solid fa-pause"></i>';
-            });
-
+            // Replaced hardcode with smart playAlbum helper!
+            card.addEventListener('click', () => playAlbum(album));
             recentlyPlayedGrid.appendChild(card);
         });
     }
 
-    // UPDATE: Add hover animations to Recently Added too!
     function renderRecentlyAdded(albums) {
         if (!recentlyAddedGrid) return;
         recentlyAddedGrid.innerHTML = '';
 
         albums.slice(0, 6).forEach((album) => {
-            let artistString = album.artist; // Fallback to album artist
             const card = document.createElement('div');
             card.className = 'album-card';
-
-            card.innerHTML = `
-                <div class="album-art-container">
-                    <div class="album-art" style="background: ${album.artwork}"></div>
-                    <button class="card-play-btn"><i class="fa-solid fa-play"></i></button>
-                </div>
-                <h4>${album.title}</h4>
-                <p>${album.type} • ${artistString}</p>
-            `;
-
-            // Hover Animations!
-            card.addEventListener('mouseenter', () => {
-                document.documentElement.style.setProperty(
-                    '--album-color',
-                    album.primaryColor,
-                );
-            });
-            card.addEventListener('mouseleave', () => {
-                document.documentElement.style.setProperty(
-                    '--album-color',
-                    activeAlbumColor,
-                );
-            });
-
-            card.addEventListener('click', () => {
-                isBootingUp = false;
-                loadTrackIntoPlayer(album.tracks[0], album);
-                audioPlayer.play();
-                isPlaying = true;
-                if (mainPlayPauseBtn)
-                    mainPlayPauseBtn.innerHTML =
-                        '<i class="fa-solid fa-pause"></i>';
-            });
-
-            recentlyAddedGrid.appendChild(card);
-        });
-    }
-
-    // NEW: Render the entire Library grid
-    function renderLibrary(albums) {
-        const libraryGrid = document.getElementById('library-grid');
-        if (!libraryGrid) return;
-        libraryGrid.innerHTML = '';
-
-        // Notice we don't use .slice(0, 6) here! We want ALL albums.
-        albums.forEach((album) => {
-            const card = document.createElement('div');
-            card.className = 'album-card';
-
             card.innerHTML = `
                 <div class="album-art-container">
                     <div class="album-art" style="background: ${album.artwork}"></div>
@@ -448,46 +442,147 @@ document.addEventListener('DOMContentLoaded', () => {
                 <p>${album.type} • ${album.artist}</p>
             `;
 
-            // Hover Animations
-            card.addEventListener('mouseenter', () => {
+            card.addEventListener('mouseenter', () =>
                 document.documentElement.style.setProperty(
                     '--album-color',
                     album.primaryColor,
-                );
-            });
-            card.addEventListener('mouseleave', () => {
+                ),
+            );
+            card.addEventListener('mouseleave', () =>
                 document.documentElement.style.setProperty(
                     '--album-color',
                     activeAlbumColor,
-                );
-            });
+                ),
+            );
 
-            // Click to Play
-            card.addEventListener('click', () => {
-                isBootingUp = false;
-                loadTrackIntoPlayer(album.tracks[0], album);
-                audioPlayer.play();
-                isPlaying = true;
-                if (mainPlayPauseBtn)
-                    mainPlayPauseBtn.innerHTML =
-                        '<i class="fa-solid fa-pause"></i>';
-            });
+            // Replaced hardcode with smart playAlbum helper!
+            const playBtn = card.querySelector('.card-play-btn');
+            if (playBtn) {
+                playBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    playAlbum(album);
+                });
+            }
 
+            card.addEventListener('click', () => openAlbumPage(album));
+            recentlyAddedGrid.appendChild(card);
+        });
+    }
+
+    function renderLibrary(albums) {
+        const libraryGrid = document.getElementById('library-grid');
+        if (!libraryGrid) return;
+        libraryGrid.innerHTML = '';
+
+        albums.forEach((album) => {
+            const card = document.createElement('div');
+            card.className = 'album-card';
+            card.innerHTML = `
+                <div class="album-art-container">
+                    <div class="album-art" style="background: ${album.artwork}"></div>
+                    <button class="card-play-btn"><i class="fa-solid fa-play"></i></button>
+                </div>
+                <h4>${album.title}</h4>
+                <p>${album.type} • ${album.artist}</p>
+            `;
+
+            card.addEventListener('mouseenter', () =>
+                document.documentElement.style.setProperty(
+                    '--album-color',
+                    album.primaryColor,
+                ),
+            );
+            card.addEventListener('mouseleave', () =>
+                document.documentElement.style.setProperty(
+                    '--album-color',
+                    activeAlbumColor,
+                ),
+            );
+
+            const playBtn = card.querySelector('.card-play-btn');
+            if (playBtn) {
+                playBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    playAlbum(album);
+                });
+            }
+
+            card.addEventListener('click', () => openAlbumPage(album));
             libraryGrid.appendChild(card);
         });
+    }
+
+    function openAlbumPage(album) {
+        document
+            .querySelectorAll('.view-section')
+            .forEach((v) => v.classList.remove('active'));
+        document.getElementById('view-album').classList.add('active');
+
+        document.documentElement.style.setProperty(
+            '--album-color',
+            album.primaryColor,
+        );
+        activeAlbumColor = album.primaryColor;
+
+        document.getElementById('album-page-art').style.background =
+            album.artwork;
+        document.getElementById('album-page-type').textContent = album.type;
+        document.getElementById('album-page-title').textContent = album.title;
+        document.getElementById('album-page-meta').textContent =
+            `${album.artist} • ${album.releaseYear} • ${album.tracks.length} songs`;
+
+        const tracklistContainer = document.getElementById('album-tracklist');
+        tracklistContainer.innerHTML = '';
+
+        album.tracks.forEach((track, index) => {
+            const row = document.createElement('div');
+            row.className = 'tracklist-row';
+
+            const isBlocked = !appSettings.allowExplicit && track.explicit;
+
+            if (isBlocked) {
+                row.style.opacity = '0.4';
+                row.style.cursor = 'not-allowed';
+                row.title = 'Explicit content disabled.';
+            }
+
+            row.innerHTML = `
+                <div class="track-num">${index + 1}</div>
+                <div class="track-details">
+                    <span class="track-name">${track.title} ${track.explicit ? '<span style="background:var(--text-secondary); color:var(--bg-main); font-size:10px; padding:2px 4px; border-radius:3px; vertical-align:middle; margin-left:4px;">E</span>' : ''}</span>
+                    <span>${track.artists.join(', ')}</span>
+                </div>
+            `;
+
+            if (!isBlocked) {
+                row.addEventListener('click', () => {
+                    currentAlbumData = album;
+                    currentTrackIndex = index;
+                    loadTrackIntoPlayer(track, album);
+                    audioPlayer.play();
+                    isPlaying = true;
+                    if (mainPlayPauseBtn)
+                        mainPlayPauseBtn.innerHTML =
+                            '<i class="fa-solid fa-pause"></i>';
+                });
+            }
+
+            tracklistContainer.appendChild(row);
+        });
+
+        // Replaced hardcode with smart playAlbum helper!
+        const bigPlayBtn = document.getElementById('album-page-play-btn');
+        if (bigPlayBtn) {
+            bigPlayBtn.onclick = () => playAlbum(album);
+        }
     }
 
     function loadTrackIntoPlayer(track, album) {
         if (!npTitle || !npArtists || !npArtwork) return;
 
-        // NEW: Remember the current album and track index!
-        currentAlbumData = album;
-        currentTrackIndex = album.tracks.findIndex((t) => t.id === track.id);
-
         npTitle.textContent = track.title;
         npArtwork.style.background = album.artwork;
 
-        // Update the active color tracker and apply it!
         activeAlbumColor = album.primaryColor;
         document.documentElement.style.setProperty(
             '--album-color',
@@ -506,12 +601,85 @@ document.addEventListener('DOMContentLoaded', () => {
             npArtists.innerHTML = mainArtistsHTML;
         }
 
-        if (track.audioFile) {
-            audioPlayer.src = track.audioFile;
+        // DETERMINING AUDIO QUALITY
+        // Fallback checks just in case the JSON is missing one of the links
+        let fileToPlay = track.audioFileHigh || track.audioFileNormal;
+
+        if (appSettings.audioQuality === 'normal' && track.audioFileNormal) {
+            fileToPlay = track.audioFileNormal;
+        } else if (
+            appSettings.audioQuality === 'high' &&
+            track.audioFileHigh
+        ) {
+            fileToPlay = track.audioFileHigh;
+        }
+
+        if (fileToPlay) {
+            audioPlayer.src = fileToPlay;
+
+            if (crossfadeInterval) {
+                clearInterval(crossfadeInterval);
+                crossfadeInterval = null;
+            }
+
+            if (appSettings.crossfade > 0) {
+                audioPlayer.volume = 0;
+                let targetVol = currentVolume;
+                let steps = appSettings.crossfade * 10;
+                let currentStep = 0;
+
+                crossfadeInterval = setInterval(() => {
+                    currentStep++;
+                    let newVol = (currentStep / steps) * targetVol;
+                    audioPlayer.volume = Math.max(0, Math.min(1, newVol));
+
+                    if (currentStep >= steps) {
+                        clearInterval(crossfadeInterval);
+                        crossfadeInterval = null;
+                    }
+                }, 100);
+            } else {
+                audioPlayer.volume = currentVolume;
+            }
         }
 
         appSettings.lastPlayedSongId = track.id;
         saveSettings();
+    }
+
+    /* =========================================
+       NAVIGATION LOGIC
+    ========================================= */
+    const navItems = document.querySelectorAll('.nav-item');
+    const views = document.querySelectorAll('.view-section');
+
+    if (navItems.length > 0) {
+        navItems.forEach((item) => {
+            item.addEventListener('click', function () {
+                const label = this.textContent.trim();
+                views.forEach((v) => v.classList.remove('active'));
+
+                if (label === 'Home') {
+                    const homeView = document.getElementById('view-home');
+                    if (homeView) {
+                        homeView.classList.add('active');
+                        document.documentElement.style.setProperty(
+                            '--album-color',
+                            activeAlbumColor,
+                        );
+                    }
+                } else if (label === 'Your Library') {
+                    const libView = document.getElementById('view-library');
+                    if (libView) {
+                        libView.classList.add('active');
+                        document.documentElement.style.setProperty(
+                            '--album-color',
+                            activeAlbumColor,
+                        );
+                    }
+                }
+            });
+        });
     }
 
     /* =========================================
@@ -529,6 +697,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateVolumeUI(percentage) {
         percentage = Math.max(0, Math.min(1, percentage));
         currentVolume = percentage;
+
         if (volumeFill) volumeFill.style.width = percentage * 100 + '%';
         if (audioPlayer) audioPlayer.volume = percentage;
 
@@ -583,11 +752,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isDraggingPlayback) {
             isDraggingPlayback = false;
             document.body.classList.remove('dragging');
-
-            // Only update the actual audio track if the user scrubbed it
             audioPlayer.currentTime = scrubTime;
-
-            // Update the setting so it saves correctly
             appSettings.lastPlayedTime = scrubTime;
         }
     });
@@ -613,6 +778,14 @@ document.addEventListener('DOMContentLoaded', () => {
         explicitToggle.addEventListener('change', (e) => {
             appSettings.allowExplicit = e.target.checked;
             saveSettings();
+            if (
+                document
+                    .getElementById('view-album')
+                    .classList.contains('active') &&
+                currentAlbumData
+            ) {
+                openAlbumPage(currentAlbumData);
+            }
         });
     }
 
@@ -625,9 +798,35 @@ document.addEventListener('DOMContentLoaded', () => {
     if (qualityOptions) {
         qualityOptions.forEach((option) => {
             option.addEventListener('click', () => {
-                appSettings.audioQuality = option.getAttribute('data-value');
-                applySettings();
-                saveSettings();
+                const newQuality = option.getAttribute('data-value');
+
+                // Only do the heavy lifting if the user ACTUALLY changed the setting
+                if (appSettings.audioQuality !== newQuality) {
+                    appSettings.audioQuality = newQuality;
+                    applySettings();
+                    saveSettings();
+
+                    // LIVE SWAP: Instantly change the audio source without losing your place!
+                    if (currentAlbumData && audioPlayer.src) {
+                        const track =
+                            currentAlbumData.tracks[currentTrackIndex];
+                        const currentTime = audioPlayer.currentTime; // Save exact timestamp
+                        const wasPlaying = isPlaying; // Remember if it was paused or playing
+
+                        // Grab the new file based on the new setting
+                        let newFile =
+                            appSettings.audioQuality === 'normal'
+                                ? track.audioFileNormal || track.audioFileHigh
+                                : track.audioFileHigh || track.audioFileNormal;
+
+                        audioPlayer.src = newFile;
+                        audioPlayer.currentTime = currentTime; // Jump right back to the timestamp
+
+                        if (wasPlaying) {
+                            audioPlayer.play();
+                        }
+                    }
+                }
                 qualityDropdown.classList.remove('open');
             });
         });
@@ -655,7 +854,9 @@ document.addEventListener('DOMContentLoaded', () => {
        LYRICS TOGGLE LOGIC
     ========================================= */
     const lyricsBtn = document.getElementById('btn-lyrics-toggle');
-    if (lyricsBtn) {
+    const lyricsPanel = document.getElementById('lyrics-panel');
+
+    if (lyricsBtn && lyricsPanel) {
         lyricsBtn.addEventListener('click', () => {
             appSettings.isLyricsHidden = !appSettings.isLyricsHidden;
             applySettings();
@@ -667,32 +868,4 @@ document.addEventListener('DOMContentLoaded', () => {
     applySettings();
     updateVolumeUI(0.7);
     loadMusicDatabase();
-
-    /* =========================================
-       NAVIGATION LOGIC (With Animations & Fixes!)
-    ========================================= */
-    const navItems = document.querySelectorAll('.nav-item');
-    const views = document.querySelectorAll('.view-section');
-
-    if (navItems.length > 0) {
-        navItems.forEach((item) => {
-            // Changed from (e) => to function() so we can use 'this' safely
-            item.addEventListener('click', function () {
-                // 'this' grabs the whole .nav-item text, even if you click the icon!
-                const label = this.textContent.trim();
-
-                // Remove 'active' class from ALL views instantly
-                views.forEach((v) => v.classList.remove('active'));
-
-                // Add 'active' class to the target view
-                if (label === 'Home') {
-                    const homeView = document.getElementById('view-home');
-                    if (homeView) homeView.classList.add('active');
-                } else if (label === 'Your Library') {
-                    const libView = document.getElementById('view-library');
-                    if (libView) libView.classList.add('active');
-                }
-            });
-        });
-    }
 }); // End of DOMContentLoaded
