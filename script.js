@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
         lastPlayedTime: 0,
         isLyricsHidden: false,
         repeatState: 0,
+        searchHistory: [], // NEW: Stores recent search queries
     };
 
     let appSettings = { ...defaultSettings };
@@ -44,6 +45,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 appSettings.audioQuality !== 'normal'
             ) {
                 appSettings.audioQuality = 'high';
+            }
+            // Ensure searchHistory is an array
+            if (!Array.isArray(appSettings.searchHistory)) {
+                appSettings.searchHistory = [];
             }
         } catch (error) {
             console.error('Local storage corrupted. Resetting to defaults.');
@@ -113,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isDraggingPlayback = false;
     let scrubTime = 0;
     let isBootingUp = true;
-    let crossfadeInterval = null; // NEW: Global crossfade timer tracker
+    let crossfadeInterval = null;
 
     let currentAlbumData = null;
     let currentTrackIndex = 0;
@@ -152,23 +157,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentTimeLabel)
             currentTimeLabel.textContent = formatTime(audioPlayer.currentTime);
 
-        // NEW: FADE-OUT LOGIC
         if (appSettings.crossfade > 0 && audioPlayer.duration) {
             const timeLeft = audioPlayer.duration - audioPlayer.currentTime;
-
-            // If we are in the final X seconds of the song...
             if (timeLeft <= appSettings.crossfade) {
-                // Smoothly calculate the volume going down to 0
                 let fadeOutVol =
                     currentVolume * (timeLeft / appSettings.crossfade);
                 audioPlayer.volume = Math.max(
                     0,
                     Math.min(currentVolume, fadeOutVol),
                 );
-            }
-            // Make sure the volume stays normal in the middle of the song
-            // (Only triggers if the fade-in interval is completely finished)
-            else if (!crossfadeInterval) {
+            } else if (!crossfadeInterval) {
                 audioPlayer.volume = currentVolume;
             }
         }
@@ -248,7 +246,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let foundValidTrack = false;
         let startIndex = currentTrackIndex;
 
-        // Skips explicit tracks if setting is disabled
         while (!foundValidTrack) {
             currentTrackIndex++;
             if (currentTrackIndex >= currentAlbumData.tracks.length) {
@@ -299,11 +296,9 @@ document.addEventListener('DOMContentLoaded', () => {
             currentTrackIndex = currentAlbumData.tracks.length - 1;
         }
 
-        // Ensure the track we skip back to is allowed
         const prevTrack = currentAlbumData.tracks[currentTrackIndex];
         if (!appSettings.allowExplicit && prevTrack.explicit) {
-            // Recursively skip back again if this one is explicit
-            playPrev();
+            playPrev(); // Recursively skip back again if explicit
             return;
         }
 
@@ -337,7 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let activeAlbumColor = '#222222';
 
-    // NEW HELPER: Finds the first non-explicit track in an album (if filter is active)
+    // Helper: Finds the first non-explicit track in an album (if filter is active)
     function playAlbum(album) {
         let trackIndexToPlay = 0;
 
@@ -420,7 +415,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 ),
             );
 
-            // Replaced hardcode with smart playAlbum helper!
             card.addEventListener('click', () => playAlbum(album));
             recentlyPlayedGrid.appendChild(card);
         });
@@ -455,7 +449,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 ),
             );
 
-            // Replaced hardcode with smart playAlbum helper!
             const playBtn = card.querySelector('.card-play-btn');
             if (playBtn) {
                 playBtn.addEventListener('click', (e) => {
@@ -570,7 +563,6 @@ document.addEventListener('DOMContentLoaded', () => {
             tracklistContainer.appendChild(row);
         });
 
-        // Replaced hardcode with smart playAlbum helper!
         const bigPlayBtn = document.getElementById('album-page-play-btn');
         if (bigPlayBtn) {
             bigPlayBtn.onclick = () => playAlbum(album);
@@ -601,8 +593,6 @@ document.addEventListener('DOMContentLoaded', () => {
             npArtists.innerHTML = mainArtistsHTML;
         }
 
-        // DETERMINING AUDIO QUALITY
-        // Fallback checks just in case the JSON is missing one of the links
         let fileToPlay = track.audioFileHigh || track.audioFileNormal;
 
         if (appSettings.audioQuality === 'normal' && track.audioFileNormal) {
@@ -617,10 +607,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (fileToPlay) {
             audioPlayer.src = fileToPlay;
 
-            if (crossfadeInterval) {
-                clearInterval(crossfadeInterval);
-                crossfadeInterval = null;
-            }
+            if (crossfadeInterval) clearInterval(crossfadeInterval);
+            crossfadeInterval = null;
 
             if (appSettings.crossfade > 0) {
                 audioPlayer.volume = 0;
@@ -661,23 +649,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (label === 'Home') {
                     const homeView = document.getElementById('view-home');
-                    if (homeView) {
-                        homeView.classList.add('active');
-                        document.documentElement.style.setProperty(
-                            '--album-color',
-                            activeAlbumColor,
-                        );
-                    }
+                    if (homeView) homeView.classList.add('active');
+                } else if (label === 'Search') {
+                    const searchView = document.getElementById('view-search');
+                    if (searchView) searchView.classList.add('active');
+                    // ONLY focus the input, don't force a re-render here!
+                    setTimeout(
+                        () => document.getElementById('search-input').focus(),
+                        100,
+                    );
                 } else if (label === 'Your Library') {
                     const libView = document.getElementById('view-library');
-                    if (libView) {
-                        libView.classList.add('active');
-                        document.documentElement.style.setProperty(
-                            '--album-color',
-                            activeAlbumColor,
-                        );
-                    }
+                    if (libView) libView.classList.add('active');
                 }
+
+                document.documentElement.style.setProperty(
+                    '--album-color',
+                    activeAlbumColor,
+                );
             });
         });
     }
@@ -799,28 +788,23 @@ document.addEventListener('DOMContentLoaded', () => {
         qualityOptions.forEach((option) => {
             option.addEventListener('click', () => {
                 const newQuality = option.getAttribute('data-value');
-
-                // Only do the heavy lifting if the user ACTUALLY changed the setting
                 if (appSettings.audioQuality !== newQuality) {
                     appSettings.audioQuality = newQuality;
                     applySettings();
                     saveSettings();
-
-                    // LIVE SWAP: Instantly change the audio source without losing your place!
                     if (currentAlbumData && audioPlayer.src) {
                         const track =
                             currentAlbumData.tracks[currentTrackIndex];
-                        const currentTime = audioPlayer.currentTime; // Save exact timestamp
-                        const wasPlaying = isPlaying; // Remember if it was paused or playing
+                        const currentTime = audioPlayer.currentTime;
+                        const wasPlaying = isPlaying;
 
-                        // Grab the new file based on the new setting
                         let newFile =
                             appSettings.audioQuality === 'normal'
                                 ? track.audioFileNormal || track.audioFileHigh
                                 : track.audioFileHigh || track.audioFileNormal;
 
                         audioPlayer.src = newFile;
-                        audioPlayer.currentTime = currentTime; // Jump right back to the timestamp
+                        audioPlayer.currentTime = currentTime;
 
                         if (wasPlaying) {
                             audioPlayer.play();
@@ -868,4 +852,310 @@ document.addEventListener('DOMContentLoaded', () => {
     applySettings();
     updateVolumeUI(0.7);
     loadMusicDatabase();
+
+    /* =========================================
+       SEARCH LOGIC (With Animation Fix & Typo Tolerance!)
+    ========================================= */
+    const searchInput = document.getElementById('search-input');
+    const searchResultsGrid = document.getElementById('search-results-grid');
+    const searchResultsTitle = document.getElementById('search-results-title');
+    const bestPickSection = document.getElementById('best-pick-section');
+    const bestPickContainer = document.getElementById('best-pick-container');
+    const suggestionsDropdown = document.getElementById(
+        'search-suggestions-dropdown',
+    );
+    const suggestionsList = document.getElementById('search-suggestions-list');
+
+    function addToHistory(term) {
+        if (!term || term.trim() === '') return;
+        if (!appSettings.searchHistory) appSettings.searchHistory = [];
+        appSettings.searchHistory = appSettings.searchHistory.filter(
+            (h) => h.toLowerCase() !== term.toLowerCase(),
+        );
+        appSettings.searchHistory.unshift(term);
+        if (appSettings.searchHistory.length > 5)
+            appSettings.searchHistory.pop();
+        saveSettings();
+    }
+
+    function getTypoDistance(a, b) {
+        if (!a.length) return b.length;
+        if (!b.length) return a.length;
+        const arr = [];
+        for (let i = 0; i <= b.length; i++) {
+            arr[i] = [i];
+            for (let j = 1; j <= a.length; j++) {
+                arr[i][j] =
+                    i === 0
+                        ? j
+                        : Math.min(
+                              arr[i - 1][j] + 1,
+                              arr[i][j - 1] + 1,
+                              arr[i - 1][j - 1] +
+                                  (a[j - 1] === b[i - 1] ? 0 : 1),
+                          );
+            }
+        }
+        return arr[b.length][a.length];
+    }
+
+    // NEW: Added 'animate' parameter!
+    function renderSearchResults(albums, query = '', animate = true) {
+        if (!searchResultsGrid) return;
+        searchResultsGrid.innerHTML = '';
+        if (bestPickContainer) bestPickContainer.innerHTML = '';
+
+        if (albums.length === 0) {
+            searchResultsTitle.textContent = 'No results found';
+            if (bestPickSection) bestPickSection.style.display = 'none';
+            return;
+        }
+
+        let regularResults = albums;
+        let delayCounter = 0;
+
+        if (query.length > 0 && albums.length > 0) {
+            searchResultsTitle.textContent = 'Other Results';
+            if (bestPickSection) bestPickSection.style.display = 'block';
+
+            const bestPickAlbum = albums[0];
+            regularResults = albums.slice(1);
+
+            if (bestPickContainer) {
+                const bpCard = document.createElement('div');
+
+                // Only animate if the flag is true
+                if (animate) {
+                    bpCard.className = 'best-pick-card search-animated';
+                    bpCard.style.animationDelay = `${delayCounter * 0.05}s`;
+                    delayCounter++;
+                } else {
+                    bpCard.className = 'best-pick-card';
+                }
+
+                bpCard.innerHTML = `
+                    <div class="best-pick-art" style="background: ${bestPickAlbum.artwork}"></div>
+                    <div class="best-pick-info">
+                        <span class="best-pick-badge">Best Pick</span>
+                        <h1>${bestPickAlbum.title}</h1>
+                        <p style="color: var(--text-secondary); font-weight: bold;">${bestPickAlbum.type} • ${bestPickAlbum.artist}</p>
+                    </div>
+                    <button class="best-pick-play"><i class="fa-solid fa-play"></i></button>
+                `;
+
+                bpCard.addEventListener('mouseenter', () =>
+                    document.documentElement.style.setProperty(
+                        '--album-color',
+                        bestPickAlbum.primaryColor,
+                    ),
+                );
+                bpCard.addEventListener('mouseleave', () =>
+                    document.documentElement.style.setProperty(
+                        '--album-color',
+                        activeAlbumColor,
+                    ),
+                );
+
+                bpCard
+                    .querySelector('.best-pick-play')
+                    .addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        addToHistory(query);
+                        playAlbum(bestPickAlbum);
+                    });
+                bpCard.addEventListener('click', () => {
+                    addToHistory(query);
+                    openAlbumPage(bestPickAlbum);
+                });
+
+                bestPickContainer.appendChild(bpCard);
+            }
+        } else {
+            searchResultsTitle.textContent = 'Browse All';
+            if (bestPickSection) bestPickSection.style.display = 'none';
+        }
+
+        regularResults.forEach((album) => {
+            const card = document.createElement('div');
+
+            // Only animate if the flag is true
+            if (animate) {
+                card.className = 'album-card search-animated';
+                card.style.animationDelay = `${delayCounter * 0.05}s`;
+                delayCounter++;
+            } else {
+                card.className = 'album-card';
+            }
+
+            card.innerHTML = `
+                <div class="album-art-container">
+                    <div class="album-art" style="background: ${album.artwork}"></div>
+                    <button class="card-play-btn"><i class="fa-solid fa-play"></i></button>
+                </div>
+                <h4>${album.title}</h4>
+                <p>${album.type} • ${album.artist}</p>
+            `;
+
+            card.addEventListener('mouseenter', () =>
+                document.documentElement.style.setProperty(
+                    '--album-color',
+                    album.primaryColor,
+                ),
+            );
+            card.addEventListener('mouseleave', () =>
+                document.documentElement.style.setProperty(
+                    '--album-color',
+                    activeAlbumColor,
+                ),
+            );
+
+            const playBtn = card.querySelector('.card-play-btn');
+            if (playBtn) {
+                playBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (query) addToHistory(query);
+                    playAlbum(album);
+                });
+            }
+            card.addEventListener('click', () => {
+                if (query) addToHistory(query);
+                openAlbumPage(album);
+            });
+            searchResultsGrid.appendChild(card);
+        });
+    }
+
+    let searchDebounceTimer;
+    let lastQuery = '';
+
+    if (searchResultsGrid && musicData) {
+        if (searchInput) searchInput.value = ''; // THE FIX: Clear browser's ghost text on refresh
+        lastQuery = '';
+        renderSearchResults(musicData.albums, '', false); // THE FIX: 'false' disables the load-in animation!
+    }
+
+    if (searchInput) {
+        function populateHistoryDropdown() {
+            suggestionsList.innerHTML =
+                '<li class="suggestion-item header">Recent Searches</li>';
+            appSettings.searchHistory.forEach((hist) => {
+                const li = document.createElement('li');
+                li.className = 'suggestion-item';
+                li.innerHTML = `<i class="fa-regular fa-clock-rotate-left suggestion-icon"></i> <span>${hist}</span>`;
+                li.addEventListener('click', () => {
+                    searchInput.value = hist;
+                    searchInput.dispatchEvent(new Event('input'));
+                    if (suggestionsDropdown)
+                        suggestionsDropdown.classList.remove('open');
+                });
+                suggestionsList.appendChild(li);
+            });
+            if (suggestionsDropdown) suggestionsDropdown.classList.add('open');
+        }
+
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchDebounceTimer);
+            if (suggestionsDropdown)
+                suggestionsDropdown.classList.remove('open');
+
+            searchDebounceTimer = setTimeout(() => {
+                const query = e.target.value.toLowerCase().trim();
+
+                if (query === lastQuery) return;
+                lastQuery = query;
+
+                if (query === '') {
+                    renderSearchResults(musicData.albums, '', false); // No animation when clearing search
+                    if (
+                        appSettings.searchHistory &&
+                        appSettings.searchHistory.length > 0
+                    ) {
+                        populateHistoryDropdown();
+                    }
+                    return;
+                }
+
+                const scoredAlbums = musicData.albums.map((album) => {
+                    let score = 0;
+                    const title = album.title.toLowerCase();
+                    const artist = album.artist.toLowerCase();
+
+                    if (title.includes(query)) score += 100;
+                    if (artist.includes(query)) score += 80;
+
+                    if (query.length >= 3 && score === 0) {
+                        const titleWords = title.split(' ');
+                        const artistWords = artist.split(' ');
+                        const allWords = [...titleWords, ...artistWords];
+
+                        allWords.forEach((word) => {
+                            if (word.length >= 3) {
+                                const distance = getTypoDistance(query, word);
+                                if (distance === 1) score += 40;
+                                if (distance === 2) score += 20;
+                            }
+                        });
+                    }
+                    return { album, score };
+                });
+
+                const finalResults = scoredAlbums
+                    .filter((item) => item.score > 0)
+                    .sort((a, b) => b.score - a.score)
+                    .map((item) => item.album);
+
+                renderSearchResults(finalResults, query, true); // TRUE triggers the animation!
+
+                suggestionsList.innerHTML = '';
+                if (finalResults.length > 0) {
+                    finalResults.slice(0, 4).forEach((album) => {
+                        const li = document.createElement('li');
+                        li.className = 'suggestion-item';
+                        li.innerHTML = `<i class="fa-light fa-music suggestion-icon"></i> <span>${album.title} • ${album.artist}</span>`;
+                        li.addEventListener('click', () => {
+                            searchInput.value = album.title;
+                            if (suggestionsDropdown)
+                                suggestionsDropdown.classList.remove('open');
+                            addToHistory(album.title);
+                            openAlbumPage(album);
+                        });
+                        suggestionsList.appendChild(li);
+                    });
+                    if (suggestionsDropdown)
+                        suggestionsDropdown.classList.add('open');
+                }
+            }, 200);
+        });
+
+        searchInput.addEventListener('focus', () => {
+            const query = searchInput.value.trim();
+            if (
+                query === '' &&
+                appSettings.searchHistory &&
+                appSettings.searchHistory.length > 0
+            ) {
+                populateHistoryDropdown();
+            }
+        });
+
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const query = searchInput.value.trim();
+                if (query) addToHistory(query);
+                if (suggestionsDropdown)
+                    suggestionsDropdown.classList.remove('open');
+            }
+        });
+    }
+
+    document.addEventListener('click', (e) => {
+        if (suggestionsDropdown && searchInput) {
+            if (
+                !searchInput.contains(e.target) &&
+                !suggestionsDropdown.contains(e.target)
+            ) {
+                suggestionsDropdown.classList.remove('open');
+            }
+        }
+    });
 }); // End of DOMContentLoaded
