@@ -419,6 +419,16 @@ document.addEventListener('DOMContentLoaded', () => {
         playNext(true);
     });
 
+    // --- NATIVE OS MEDIA CONTROLS (ACTIONS) ---
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.setActionHandler('play', togglePlay);
+        navigator.mediaSession.setActionHandler('pause', togglePlay);
+        navigator.mediaSession.setActionHandler('previoustrack', playPrev);
+        navigator.mediaSession.setActionHandler('nexttrack', () =>
+            playNext(false),
+        );
+    }
+
     /* =========================================
        JSON DATABASE & DATA BINDING
     ========================================= */
@@ -696,8 +706,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 row.title = 'Explicit content disabled.';
             }
 
+            // NEW: If it's a playlist, generate the mini cover art!
+            let trackArtHTML = '';
+            if (album.type === 'Playlist') {
+                // Use the saved original artwork, or fallback to the playlist's artwork
+                const artBg = track.originalArtwork || album.artwork;
+                trackArtHTML = `<div class="track-list-art" style="background: ${artBg}"></div>`;
+            }
+
             row.innerHTML = `
                 <div class="track-num">${index + 1}</div>
+                ${trackArtHTML} <!-- INJECTS THE MINI COVER HERE -->
                 <div class="track-details">
                     <span class="track-name">${track.title} ${track.explicit ? '<span style="background:var(--text-secondary); color:var(--bg-main); font-size:10px; padding:2px 4px; border-radius:3px; vertical-align:middle; margin-left:4px;">E</span>' : ''}</span>
                     <span>${track.artists.join(', ')}</span>
@@ -794,6 +813,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         appSettings.lastPlayedSongId = track.id;
         saveSettings();
+
+        // --- NATIVE OS MEDIA CONTROLS (METADATA) ---
+        if ('mediaSession' in navigator) {
+            // Try to extract an image URL from your CSS artwork string (e.g., "url('./assets/cover.jpg')")
+            let artUrl = 'https://via.placeholder.com/512'; // Fallback image
+            const artMatch = album.artwork.match(/url\(['"]?(.*?)['"]?\)/);
+            if (artMatch && artMatch[1]) artUrl = artMatch[1];
+
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: track.title,
+                artist: track.artists.join(', '),
+                album: album.title,
+                artwork: [
+                    { src: artUrl, sizes: '512x512', type: 'image/jpeg' },
+                    { src: artUrl, sizes: '512x512', type: 'image/png' },
+                ],
+            });
+        }
     }
 
     /* =========================================
@@ -1013,6 +1050,106 @@ document.addEventListener('DOMContentLoaded', () => {
     applySettings();
     updateVolumeUI(0.7);
     loadMusicDatabase();
+
+    /* =========================================
+       GLOBAL KEYBOARD SHORTCUTS
+    ========================================= */
+    document.addEventListener('keydown', (e) => {
+        // Check if the user is currently typing in an input field (like the search bar)
+        const isTyping =
+            e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
+
+        // 1. ALT + S: Instantly open Search (Works even if typing!)
+        if (e.altKey && e.code === 'KeyS') {
+            e.preventDefault();
+            const views = document.querySelectorAll('.view-section');
+            views.forEach((v) => v.classList.remove('active'));
+
+            const searchView = document.getElementById('view-search');
+            if (searchView) searchView.classList.add('active');
+
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) setTimeout(() => searchInput.focus(), 100);
+            return;
+        }
+
+        // --- ALL SHORTCUTS BELOW ONLY WORK IF NOT TYPING ---
+        if (!isTyping) {
+            // SPACEBAR: Play / Pause
+            if (e.code === 'Space') {
+                e.preventDefault();
+                togglePlay();
+            }
+
+            // 'M' KEY: Toggle Mute
+            if (e.code === 'KeyM') {
+                e.preventDefault();
+                const muteBtn = document.getElementById('btn-mute');
+                if (muteBtn) muteBtn.click();
+            }
+
+            // 'L' KEY: Like / Unlike current song
+            if (e.code === 'KeyL') {
+                e.preventDefault();
+                const btnLike = document.getElementById('btn-like');
+                if (btnLike) btnLike.click();
+            }
+
+            // 'Y' KEY: Toggle Lyrics Panel
+            if (e.code === 'KeyY') {
+                e.preventDefault();
+                const lyricsBtn = document.getElementById('btn-lyrics-toggle');
+                if (lyricsBtn) lyricsBtn.click();
+            }
+
+            // 'R' KEY: Toggle Repeat
+            if (e.code === 'KeyR') {
+                e.preventDefault();
+                const btnRepeat = document.getElementById('btn-repeat');
+                if (btnRepeat) btnRepeat.click();
+            }
+
+            // UP / DOWN ARROWS: Volume Control (+/- 10%)
+            if (e.code === 'ArrowUp') {
+                e.preventDefault();
+                updateVolumeUI(currentVolume + 0.1);
+            }
+            if (e.code === 'ArrowDown') {
+                e.preventDefault();
+                updateVolumeUI(currentVolume - 0.1);
+            }
+
+            // LEFT / RIGHT ARROWS: Seek Forward / Backward by 10 seconds
+            if (e.code === 'ArrowRight' && !e.ctrlKey) {
+                e.preventDefault();
+                if (audioPlayer && audioPlayer.src) {
+                    audioPlayer.currentTime = Math.min(
+                        audioPlayer.currentTime + 10,
+                        audioPlayer.duration,
+                    );
+                }
+            }
+            if (e.code === 'ArrowLeft' && !e.ctrlKey) {
+                e.preventDefault();
+                if (audioPlayer && audioPlayer.src) {
+                    audioPlayer.currentTime = Math.max(
+                        audioPlayer.currentTime - 10,
+                        0,
+                    );
+                }
+            }
+
+            // CTRL + LEFT / RIGHT: Skip Track / Previous Track
+            if (e.code === 'ArrowRight' && e.ctrlKey) {
+                e.preventDefault();
+                playNext(false);
+            }
+            if (e.code === 'ArrowLeft' && e.ctrlKey) {
+                e.preventDefault();
+                playPrev();
+            }
+        }
+    });
 
     /* =========================================
        SEARCH LOGIC (With Animation Fix & Typo Tolerance!)
