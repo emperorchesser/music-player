@@ -30,7 +30,8 @@ document.addEventListener('DOMContentLoaded', () => {
         lastPlayedTime: 0,
         isLyricsHidden: false,
         repeatState: 0,
-        searchHistory: [], // NEW: Stores recent search queries
+        searchHistory: [],
+        likedSongs: [], // NEW: Stores your favorite track IDs!
     };
 
     let appSettings = { ...defaultSettings };
@@ -102,6 +103,105 @@ document.addEventListener('DOMContentLoaded', () => {
             saveSettings();
         }
     });
+
+    /* =========================================
+       LIKED SONGS (FAVORITES) LOGIC
+    ========================================= */
+    const btnLike = document.getElementById('btn-like');
+    const likeIcon = document.getElementById('like-icon');
+
+    // Updates the heart icon visually based on the current track
+    function updateLikeUI() {
+        if (!btnLike || !likeIcon || !currentAlbumData) return;
+        const track = currentAlbumData.tracks[currentTrackIndex];
+
+        if (appSettings.likedSongs.includes(track.id)) {
+            // It is liked! Solid icon + colored
+            likeIcon.className = 'fa-solid fa-heart icon-sm';
+            btnLike.style.color = 'var(--accent-text)';
+        } else {
+            // Not liked! Outline icon + default color
+            likeIcon.className = 'fa-light fa-heart icon-sm';
+            btnLike.style.color = '';
+        }
+    }
+
+    // Toggle the like status when clicked
+    if (btnLike) {
+        btnLike.addEventListener('click', () => {
+            if (!currentAlbumData) return;
+            const track = currentAlbumData.tracks[currentTrackIndex];
+
+            // 1. PLAY THE ANIMATION (Reset it first so it plays every click!)
+            likeIcon.classList.remove('heart-pop');
+            void likeIcon.offsetWidth; // Trigger reflow to restart animation
+            likeIcon.classList.add('heart-pop');
+
+            // 2. TOGGLE THE SAVE STATE
+            if (appSettings.likedSongs.includes(track.id)) {
+                // Remove from favorites
+                appSettings.likedSongs = appSettings.likedSongs.filter(
+                    (id) => id !== track.id,
+                );
+            } else {
+                // Add to favorites
+                appSettings.likedSongs.push(track.id);
+            }
+
+            saveSettings();
+            updateLikeUI();
+
+            // 3. LIVE UPDATE THE LIBRARY GRID (Updates the "XX songs" counter)
+            if (
+                document
+                    .getElementById('view-library')
+                    .classList.contains('active')
+            ) {
+                renderLibrary(musicData.albums);
+            }
+
+            // 4. LIVE UPDATE THE ALBUM PAGE (If looking at the Liked Songs playlist)
+            const viewAlbum = document.getElementById('view-album');
+            const albumTitle =
+                document.getElementById('album-page-title').textContent;
+
+            if (
+                viewAlbum.classList.contains('active') &&
+                albumTitle === 'Liked Songs'
+            ) {
+                const updatedLikedAlbum = getLikedSongsAlbum();
+                openAlbumPage(updatedLikedAlbum); // Redraws the tracklist instantly!
+            }
+        });
+    }
+
+    // NEW HELPER: Generates a virtual playlist of all liked songs!
+    function getLikedSongsAlbum() {
+        let likedTracks = [];
+        musicData.albums.forEach((album) => {
+            album.tracks.forEach((track) => {
+                if (appSettings.likedSongs.includes(track.id)) {
+                    // We clone the track and attach the parent album's artwork to it!
+                    // This way, when playing a mix of songs, the player shows the correct cover art.
+                    likedTracks.push({
+                        ...track,
+                        originalArtwork: album.artwork,
+                    });
+                }
+            });
+        });
+
+        return {
+            id: 'liked_songs_playlist',
+            title: 'Liked Songs',
+            artist: 'You',
+            type: 'Playlist',
+            releaseYear: new Date().getFullYear(),
+            artwork: 'linear-gradient(135deg, #450af5, #c4a1ff)',
+            primaryColor: '#450af5',
+            tracks: likedTracks,
+        };
+    }
 
     /* =========================================
        AUDIO ENGINE LOGIC (PLAYBACK & PROGRESS)
@@ -467,6 +567,63 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!libraryGrid) return;
         libraryGrid.innerHTML = '';
 
+        // --- NEW: ADD THE LIKED SONGS CARD FIRST ---
+        const likedAlbumCount = appSettings.likedSongs
+            ? appSettings.likedSongs.length
+            : 0;
+        const likedCard = document.createElement('div');
+        likedCard.className = 'album-card';
+
+        likedCard.innerHTML = `
+            <div class="album-art-container">
+                <div class="album-art" style="background: linear-gradient(135deg, #450af5, #c4a1ff); display:flex; align-items:center; justify-content:center; color:white; font-size:40px;">
+                    <i class="fa-solid fa-heart"></i>
+                </div>
+                <button class="card-play-btn"><i class="fa-solid fa-play"></i></button>
+            </div>
+            <h4>Liked Songs</h4>
+            <p>Playlist • ${likedAlbumCount} songs</p>
+        `;
+
+        likedCard.addEventListener('mouseenter', () =>
+            document.documentElement.style.setProperty(
+                '--album-color',
+                '#450af5',
+            ),
+        );
+        likedCard.addEventListener('mouseleave', () =>
+            document.documentElement.style.setProperty(
+                '--album-color',
+                activeAlbumColor,
+            ),
+        );
+
+        likedCard.addEventListener('click', () => {
+            const likedAlbum = getLikedSongsAlbum();
+            if (likedAlbum.tracks.length === 0) {
+                alert("You haven't liked any songs yet!");
+                return;
+            }
+            openAlbumPage(likedAlbum);
+        });
+
+        const likedPlayBtn = likedCard.querySelector('.card-play-btn');
+        if (likedPlayBtn) {
+            likedPlayBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const likedAlbum = getLikedSongsAlbum();
+                if (likedAlbum.tracks.length === 0) {
+                    alert("You haven't liked any songs yet!");
+                    return;
+                }
+                playAlbum(likedAlbum);
+            });
+        }
+
+        libraryGrid.appendChild(likedCard);
+        // -------------------------------------------
+
+        // Render the rest of the actual albums
         albums.forEach((album) => {
             const card = document.createElement('div');
             card.className = 'album-card';
@@ -630,6 +787,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 audioPlayer.volume = currentVolume;
             }
         }
+
+        // NEW: Fix for "Liked Songs" playlist art. Use the original artwork if it exists!
+        npArtwork.style.background = track.originalArtwork || album.artwork;
+        updateLikeUI(); // Automatically syncs the heart icon!
 
         appSettings.lastPlayedSongId = track.id;
         saveSettings();
