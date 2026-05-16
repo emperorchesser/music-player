@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Amaranth:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
 /* --- VARIABLES --- */
 :root {
     --bg-main: #121212;
@@ -137,8 +139,27 @@ body.light-mode ::-webkit-scrollbar-thumb:hover {
 .logo {
     font-size: 1.5rem;
     color: var(--text-primary);
+    /* We can leave margin-bottom: 10px here, we will adjust the image itself */
     margin-bottom: 10px;
-    font-weight: bold;
+}
+
+/* --- LOGO IMAGE ALIGNMENT FIX --- */
+.logo img {
+    height: 50px;
+    /* Made slightly larger to compensate for the built-in padding */
+    width: auto;
+    object-fit: contain;
+
+    /* Use negative margins to pull the image left and up, ignoring the transparent space */
+    /* Pulls it left to align perfectly with the Home icon */
+    /* Pulls it up slightly */
+    /* Eats up the extra empty space below it */
+    margin: -10px 0 -15px -27px;
+}
+
+/* Light Mode Fix: Turns the white logo dark gray so it doesn't disappear! */
+body.light-mode .logo img {
+    filter: invert(1);
 }
 
 .nav-item {

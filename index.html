@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vibez Player</title>
+    <title>Suonation</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet"
         href="https://cdn.jsdelivr.net/gh/rizmyabdulla/fontawesome-pro@main/releases/v7.2.0/css/fontawesome.css" />
@@ -64,8 +64,9 @@
         <div class="top-section">
             <!-- SIDEBAR -->
             <nav class="sidebar">
-                <div class="logo"><i class="fa-solid fa-waveform"></i>
-                    Vibez</div>
+                <div class="logo">
+                    <img src="logo.png" alt="Suonation Logo">
+                </div>
                 <div class="nav-item">
                     <i class="fa-light fa-house icon"></i> Home
                 </div>
@@ -108,11 +109,12 @@
 
                 <!-- SEARCH VIEW -->
                 <div id="view-search" class="view-section">
-                
+
                     <div class="search-container">
                         <i class="fa-light fa-magnifying-glass search-icon"></i>
-                        <input type="text" id="search-input" placeholder="What do you want to listen to?" autocomplete="off">
-                
+                        <input type="text" id="search-input" placeholder="What do you want to listen to?"
+                            autocomplete="off">
+
                         <!-- Search Suggestions Dropdown -->
                         <div class="search-suggestions-dropdown" id="search-suggestions-dropdown">
                             <ul id="search-suggestions-list">
@@ -120,7 +122,7 @@
                             </ul>
                         </div>
                     </div>
-                
+
                     <!-- TOP RESULT SECTION -->
                     <div id="best-pick-section" style="display: none;">
                         <h2 class="section-title">Top Result</h2>
@@ -128,13 +130,13 @@
                             <!-- JS WILL INJECT THE BEST PICK CARD HERE -->
                         </div>
                     </div>
-                
+
                     <!-- BROWSE ALL SECTION -->
                     <h2 class="section-title" id="search-results-title">Browse All</h2>
                     <div class="album-grid" id="search-results-grid">
                         <!-- JS WILL INJECT SEARCH RESULTS HERE -->
                     </div>
-                
+
                 </div>
 
                 <!-- MY LIBRARY VIEW (Hidden by default) -->
