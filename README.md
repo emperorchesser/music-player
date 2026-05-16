@@ -53,7 +53,7 @@ Navigate the entire player without ever touching your mouse. Note that **shortcu
 | <kbd>R</kbd> | Cycle Repeat modes (Off, All, One) |
 | <kbd>Alt</kbd> + <kbd>S</kbd> | Instantly jump to the search box inside the Search tab |
 
-*Bonus: Suonation is also integrated with the **Web Media Session API**, which means your physical keyboard media keys (Play/Pause/Skip) will work globally, and your current song will show up in your operating system's native media overlay.*
+Suonation is also integrated with the **Web Media Session API**, which means your physical keyboard media keys (Play/Pause/Skip) will work globally, and your current song will show up in your operating system's native media overlay.
 
 <!-- ## 📁 How to Add Your Own Music
 
@@ -67,7 +67,7 @@ To avoid copyright issues, the music files are not included in this repository. 
 
 * **Core**: 100% vanilla HTML, CSS, and JavaScript.
 * **Design Inspiration**: UI/UX patterns heavily inspired by Spotify.
-* **Icons**: [Font Awesome](https://fontawesome.com) Pro icons (v7.2.0) gracefully distributed via CDN by [@rizmyabdulla](https://github.com/rizmyabdulla).
+* **Icons**: [Font Awesome](https://fontawesome.com) Pro icons (v7.2.0) gracefully [distributed](https://github.com/rizmyabdulla/fontawesome-pro) via CDN by [@rizmyabdulla](https://github.com/rizmyabdulla).
 * **AI Assistance**: Development, core logic, and architectural scaffolding accelerated with code generation and refinement from [Google AI Studio](https://aistudio.google.com).
 
 ## 📄 License
