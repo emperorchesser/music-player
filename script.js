@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let appSettings = { ...defaultSettings };
 
-    const savedSettings = localStorage.getItem('vibez_settings');
+    const savedSettings = localStorage.getItem('suonation_settings');
     if (savedSettings) {
         try {
             const parsedSettings = JSON.parse(savedSettings);
@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function saveSettings() {
-        localStorage.setItem('vibez_settings', JSON.stringify(appSettings));
+        localStorage.setItem('suonation_settings', JSON.stringify(appSettings));
     }
 
     window.addEventListener('beforeunload', () => {
